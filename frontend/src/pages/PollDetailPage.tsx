@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useAuth } from '@clerk/clerk-react';
 import { usePoll, useVote } from '../hooks/usePolls';
 import { generateFingerprint } from '../lib/fingerprint';
 import Results from '../components/Results';
 import ShareButtons from '../components/ShareButtons';
+import Comments from '../components/Comments';
 import { DetailSkeleton } from '../components/Skeleton';
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -25,6 +27,14 @@ const PollDetailPage = () => {
   const { mutateAsync: vote, isPending } = useVote(id!);
   const [voted, setVoted] = useState(false);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
+
+  let currentUserId: string | undefined;
+  try {
+    const { userId } = useAuth();
+    currentUserId = userId ?? undefined;
+  } catch {
+    // Clerk not initialized - no auth
+  }
 
   if (isLoading) return <DetailSkeleton />;
   if (isError || !data) {
@@ -120,6 +130,8 @@ const PollDetailPage = () => {
           <ShareButtons pollId={poll.id} question={poll.question} />
         </>
       )}
+
+      <Comments pollId={poll.id} currentUserId={currentUserId} />
     </div>
   );
 };

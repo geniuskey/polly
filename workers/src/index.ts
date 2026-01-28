@@ -3,6 +3,7 @@ import type { Env, Variables } from './types';
 import { corsMiddleware } from './middleware/cors';
 import polls from './routes/polls';
 import users from './routes/users';
+import comments from './routes/comments';
 
 const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
@@ -16,6 +17,7 @@ app.get('/api/health', (c) => {
 
 // Routes
 app.route('/api/polls', polls);
+app.route('/api/polls/:pollId/comments', comments);
 app.route('/api/users', users);
 
 // 404 handler
