@@ -114,3 +114,25 @@ export interface PollListResponse {
   polls: Poll[];
   nextCursor: string | null;
 }
+
+// ============================================
+// Comments
+// ============================================
+
+export interface Comment {
+  id: string;
+  pollId: string;
+  userId: string;
+  clerkId: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface CommentListResponse {
+  comments: Comment[];
+  nextCursor: string | null;
+}
+
+export interface CreateCommentRequest {
+  content: string;
+}

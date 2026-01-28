@@ -1,5 +1,8 @@
 import type {
   ApiResponse,
+  Comment,
+  CommentListResponse,
+  CreateCommentRequest,
   CreatePollRequest,
   PollDetail,
   PollListResponse,
@@ -118,6 +121,34 @@ class ApiClient {
   async getMyVotes(cursor?: string): Promise<PollListResponse> {
     const query = cursor ? `?cursor=${cursor}` : '';
     return this.request(`/users/me/votes${query}`);
+  }
+
+  // Comments
+  async getComments(
+    pollId: string,
+    cursor?: string,
+  ): Promise<CommentListResponse> {
+    const query = cursor ? `?cursor=${cursor}` : '';
+    return this.request(`/polls/${pollId}/comments${query}`);
+  }
+
+  async createComment(
+    pollId: string,
+    data: CreateCommentRequest,
+  ): Promise<ApiResponse<Comment>> {
+    return this.request(`/polls/${pollId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteComment(
+    pollId: string,
+    commentId: string,
+  ): Promise<ApiResponse<{ deleted: boolean }>> {
+    return this.request(`/polls/${pollId}/comments/${commentId}`, {
+      method: 'DELETE',
+    });
   }
 }
 

@@ -93,6 +93,20 @@ INSERT OR IGNORE INTO categories (id, name, name_ko, icon, sort_order) VALUES
   ('other', 'Other', '기타', '📌', 99);
 
 -- ============================================
+-- Comments
+-- ============================================
+CREATE TABLE IF NOT EXISTS comments (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  poll_id TEXT NOT NULL REFERENCES polls(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL CHECK (length(content) >= 1 AND length(content) <= 500),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_comments_poll_id ON comments(poll_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
+
+-- ============================================
 -- Views (for convenience)
 -- ============================================
 

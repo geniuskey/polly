@@ -89,3 +89,16 @@ export interface UpdateProfileBody {
   shareAgeGroup?: boolean;
   shareRegion?: boolean;
 }
+
+// Comments
+export interface CommentRow {
+  id: string;
+  poll_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+}
+
+export interface CreateCommentBody {
+  content: string;
+}
