@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { Poll } from '../types';
 import { useVote } from '../hooks/usePolls';
 import { generateFingerprint } from '../lib/fingerprint';
@@ -63,7 +64,9 @@ const PollCard = ({ poll }: PollCardProps) => {
         <span className="poll-responses">{poll.responseCount}명 참여</span>
       </div>
 
-      <h3 className="poll-question">{poll.question}</h3>
+      <Link to={`/poll/${poll.id}`} className="poll-question-link">
+        <h3 className="poll-question">{poll.question}</h3>
+      </Link>
 
       <div className="poll-options">
         {poll.options.map((option, index) => (

@@ -60,11 +60,13 @@ class ApiClient {
   // Polls
   async getPolls(params?: {
     category?: string;
+    sort?: string;
     cursor?: string;
     limit?: number;
   }): Promise<PollListResponse> {
     const searchParams = new URLSearchParams();
     if (params?.category) searchParams.set('category', params.category);
+    if (params?.sort) searchParams.set('sort', params.sort);
     if (params?.cursor) searchParams.set('cursor', params.cursor);
     if (params?.limit) searchParams.set('limit', String(params.limit));
     const query = searchParams.toString();

@@ -9,6 +9,7 @@ const polls = new Hono<{ Bindings: Env; Variables: Variables }>();
 // GET /api/polls - 설문 목록 조회
 polls.get('/', async (c) => {
   const category = c.req.query('category');
+  const sort = c.req.query('sort') || 'latest';
   const cursor = c.req.query('cursor');
   const limit = Math.min(Number(c.req.query('limit')) || 20, 50);
 
@@ -26,12 +27,19 @@ polls.get('/', async (c) => {
     bindings.push(category);
   }
 
-  if (cursor) {
-    query += ' AND p.created_at < ?';
-    bindings.push(cursor);
+  if (sort === 'popular') {
+    if (cursor) {
+      query += ' AND p.created_at < ?';
+      bindings.push(cursor);
+    }
+    query += ' GROUP BY p.id ORDER BY response_count DESC, p.created_at DESC LIMIT ?';
+  } else {
+    if (cursor) {
+      query += ' AND p.created_at < ?';
+      bindings.push(cursor);
+    }
+    query += ' GROUP BY p.id ORDER BY p.created_at DESC LIMIT ?';
   }
-
-  query += ' GROUP BY p.id ORDER BY p.created_at DESC LIMIT ?';
   bindings.push(limit + 1);
 
   const stmt = c.env.DB.prepare(query);

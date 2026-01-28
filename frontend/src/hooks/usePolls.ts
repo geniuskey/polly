@@ -2,11 +2,11 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { apiClient } from '../lib/api';
 import type { CreatePollRequest, VoteRequest } from '../types';
 
-export const usePolls = (category?: string) => {
+export const usePolls = (category?: string, sort?: string) => {
   return useInfiniteQuery({
-    queryKey: ['polls', category],
+    queryKey: ['polls', category, sort],
     queryFn: ({ pageParam }) =>
-      apiClient.getPolls({ category, cursor: pageParam as string | undefined }),
+      apiClient.getPolls({ category, sort, cursor: pageParam as string | undefined }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
