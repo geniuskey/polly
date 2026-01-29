@@ -6,6 +6,7 @@ import type {
   CreatePollRequest,
   PollDetail,
   PollListResponse,
+  Tag,
   UpdateProfileRequest,
   UserProfile,
   VoteRequest,
@@ -62,18 +63,30 @@ class ApiClient {
 
   // Polls
   async getPolls(params?: {
-    category?: string;
+    tag?: string;
+    category?: string;  // backwards compat
     sort?: string;
     cursor?: string;
     limit?: number;
   }): Promise<PollListResponse> {
     const searchParams = new URLSearchParams();
-    if (params?.category) searchParams.set('category', params.category);
+    if (params?.tag) searchParams.set('tag', params.tag);
+    else if (params?.category) searchParams.set('category', params.category);
     if (params?.sort) searchParams.set('sort', params.sort);
     if (params?.cursor) searchParams.set('cursor', params.cursor);
     if (params?.limit) searchParams.set('limit', String(params.limit));
     const query = searchParams.toString();
     return this.request(`/polls${query ? `?${query}` : ''}`);
+  }
+
+  // Tags
+  async getPopularTags(limit?: number): Promise<{ data: { tags: Tag[] } }> {
+    const query = limit ? `?limit=${limit}` : '';
+    return this.request(`/tags/popular${query}`);
+  }
+
+  async searchTags(query: string): Promise<{ data: { tags: Tag[] } }> {
+    return this.request(`/tags/search?q=${encodeURIComponent(query)}`);
   }
 
   async getPoll(id: string): Promise<ApiResponse<PollDetail>> {
@@ -138,6 +151,17 @@ class ApiClient {
   ): Promise<ApiResponse<Comment>> {
     return this.request(`/polls/${pollId}/comments`, {
       method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateComment(
+    pollId: string,
+    commentId: string,
+    data: CreateCommentRequest,
+  ): Promise<ApiResponse<{ id: string; content: string }>> {
+    return this.request(`/polls/${pollId}/comments/${commentId}`, {
+      method: 'PUT',
       body: JSON.stringify(data),
     });
   }

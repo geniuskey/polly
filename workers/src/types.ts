@@ -72,7 +72,8 @@ export interface VoteCounts {
 export interface CreatePollBody {
   question: string;
   options: string[];
-  category?: string;
+  category?: string;  // deprecated, use tags
+  tags?: string[];    // hashtags (without #)
   expiresAt?: string;
 }
 

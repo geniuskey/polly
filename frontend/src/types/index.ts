@@ -8,6 +8,7 @@ export interface Poll {
   question: string;
   options: string[];
   category: string | null;
+  tags: string[];
   expiresAt: string | null;
   isActive: boolean;
   createdAt: string;
@@ -51,8 +52,15 @@ export interface Category {
 export interface CreatePollRequest {
   question: string;
   options: string[];
-  category?: string;
+  category?: string;  // deprecated
+  tags?: string[];
   expiresAt?: string;
+}
+
+export interface Tag {
+  id: number;
+  name: string;
+  count: number;
 }
 
 export interface VoteRequest {

@@ -1,3 +1,6 @@
+// Cached fingerprint
+let cachedFingerprint: string | null = null;
+
 const getCanvasFingerprint = (): string => {
   try {
     const canvas = document.createElement('canvas');
@@ -19,7 +22,7 @@ const getCanvasFingerprint = (): string => {
   }
 };
 
-export const generateFingerprint = async (): Promise<string> => {
+const computeFingerprint = async (): Promise<string> => {
   const components = [
     navigator.userAgent,
     navigator.language,
@@ -35,3 +38,15 @@ export const generateFingerprint = async (): Promise<string> => {
 
   return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 };
+
+export const generateFingerprint = async (): Promise<string> => {
+  if (cachedFingerprint) {
+    return cachedFingerprint;
+  }
+
+  cachedFingerprint = await computeFingerprint();
+  return cachedFingerprint;
+};
+
+// Pre-generate fingerprint on module load
+generateFingerprint();

@@ -94,6 +94,38 @@ comments.post('/', requireAuth, async (c) => {
   }, 201);
 });
 
+// PUT /api/polls/:pollId/comments/:commentId - 댓글 수정 (본인만)
+comments.put('/:commentId', requireAuth, async (c) => {
+  const commentId = c.req.param('commentId');
+  const userId = c.get('userId')!;
+  const body = await c.req.json<CreateCommentBody>();
+
+  const content = body.content?.trim();
+  if (!content || content.length < 1 || content.length > 500) {
+    return error(c, 'INVALID_INPUT', '댓글은 1~500자여야 합니다', 400);
+  }
+
+  const comment = await c.env.survey_db.prepare(
+    'SELECT id, user_id FROM comments WHERE id = ?',
+  )
+    .bind(commentId)
+    .first<{ id: string; user_id: string }>();
+
+  if (!comment) {
+    return error(c, 'COMMENT_NOT_FOUND', '댓글을 찾을 수 없습니다', 404);
+  }
+
+  if (comment.user_id !== userId) {
+    return error(c, 'FORBIDDEN', '본인의 댓글만 수정할 수 있습니다', 403);
+  }
+
+  await c.env.survey_db.prepare('UPDATE comments SET content = ? WHERE id = ?')
+    .bind(content, commentId)
+    .run();
+
+  return success(c, { id: commentId, content });
+});
+
 // DELETE /api/polls/:pollId/comments/:commentId - 댓글 삭제 (본인만)
 comments.delete('/:commentId', requireAuth, async (c) => {
   const commentId = c.req.param('commentId');

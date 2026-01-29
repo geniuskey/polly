@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import type { Poll } from '../types';
 import { useVote, usePollDetail } from '../hooks/usePolls';
@@ -10,20 +10,30 @@ interface PollCardProps {
   poll: Poll;
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  politics: '정치',
-  society: '사회',
-  life: '라이프',
-  food: '음식',
-  entertainment: '연예',
-  sports: '스포츠',
-  tech: '기술',
-  economy: '경제',
-  fun: '재미',
-  other: '기타',
+const scrollToNextCard = (currentCard: HTMLElement) => {
+  const nextCard = currentCard.nextElementSibling as HTMLElement | null;
+  if (nextCard) {
+    setTimeout(() => {
+      nextCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 400);
+  }
+};
+
+// Calculate optimistic results before API returns
+const calculateOptimisticResults = (
+  optionCount: number,
+  selectedIndex: number,
+  currentTotal: number
+) => {
+  const newTotal = currentTotal + 1;
+  return Array.from({ length: optionCount }, (_, i) => ({
+    count: i === selectedIndex ? 1 : 0,
+    percentage: i === selectedIndex ? (1 / newTotal) * 100 : 0,
+  }));
 };
 
 const PollCard = ({ poll }: PollCardProps) => {
+  const cardRef = useRef<HTMLDivElement>(null);
   const storedVote = getVote(poll.id);
   const hasStoredVote = storedVote !== null;
 
@@ -34,7 +44,7 @@ const PollCard = ({ poll }: PollCardProps) => {
     { count: number; percentage: number }[] | null
   >(null);
 
-  const { mutateAsync: vote, isPending } = useVote(poll.id);
+  const { mutateAsync: vote } = useVote(poll.id);
 
   // Always fetch poll detail if user has voted to get latest results
   const { data: pollDetail, isLoading: isLoadingDetail } = usePollDetail(poll.id, hasStoredVote);
@@ -52,37 +62,51 @@ const PollCard = ({ poll }: PollCardProps) => {
   }, [hasStoredVote, pollDetail]);
 
   const handleVote = async (optionIndex: number) => {
-    if (voted || isPending) return;
+    if (voted) return;
 
+    // Optimistic UI: Update immediately
+    setVoted(true);
+    setSelectedOption(optionIndex);
+    setJustVoted(true);
+    saveVote(poll.id, optionIndex);
+
+    // Show optimistic results immediately
+    setResults(calculateOptimisticResults(
+      poll.options.length,
+      optionIndex,
+      poll.responseCount
+    ));
+
+    // Auto-scroll to next card
+    if (cardRef.current) {
+      scrollToNextCard(cardRef.current);
+    }
+
+    // Remove animation class after animation completes
+    setTimeout(() => setJustVoted(false), 500);
+
+    // Background API call
     try {
       const fingerprint = await generateFingerprint();
       const response = await vote({ optionIndex, fingerprint });
 
-      // Save to localStorage
-      saveVote(poll.id, optionIndex);
-
-      setVoted(true);
-      setSelectedOption(optionIndex);
-      setJustVoted(true);
+      // Update with real results
       setResults(
         response.data.options.map((opt) => ({
           count: opt.count,
           percentage: opt.percentage,
-        })),
+        }))
       );
-
-      // Remove animation class after animation completes
-      setTimeout(() => setJustVoted(false), 500);
     } catch (err) {
       const error = err as Error & { code?: string };
       if (error.code === 'DUPLICATE_VOTE') {
-        // User has voted but wasn't in localStorage - save it now
-        saveVote(poll.id, optionIndex);
-        setVoted(true);
-        setSelectedOption(optionIndex);
-        alert('이미 투표한 설문입니다.');
+        // Already voted - keep the UI state, just don't show error
       } else {
-        alert('투표 중 오류가 발생했습니다.');
+        // Revert on error
+        setVoted(false);
+        setSelectedOption(null);
+        setResults(null);
+        console.error('Vote failed:', error);
       }
     }
   };
@@ -92,13 +116,13 @@ const PollCard = ({ poll }: PollCardProps) => {
   const isLoadingResults = voted && results === null && isLoadingDetail;
 
   return (
-    <div className="poll-card">
+    <div className="poll-card" ref={cardRef}>
       <div className="poll-card-header">
-        {poll.category && (
-          <span className="poll-category">
-            {CATEGORY_LABELS[poll.category] || poll.category}
-          </span>
-        )}
+        <div className="poll-tags">
+          {poll.tags?.map((tag) => (
+            <span key={tag} className="poll-tag">#{tag}</span>
+          ))}
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           {poll.expiresAt && <ExpirationTimer expiresAt={poll.expiresAt} />}
           <span className="poll-responses">{poll.responseCount}명 참여</span>
@@ -115,7 +139,7 @@ const PollCard = ({ poll }: PollCardProps) => {
             key={index}
             className={`poll-option ${voted ? 'voted' : ''} ${selectedOption === index ? 'selected' : ''} ${justVoted && selectedOption === index ? 'just-voted' : ''}`}
             onClick={() => handleVote(index)}
-            disabled={voted || isPending || isExpired}
+            disabled={voted || isExpired}
           >
             <span className="option-text">
               {selectedOption === index && voted && (

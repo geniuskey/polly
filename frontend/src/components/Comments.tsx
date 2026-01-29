@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useComments, useCreateComment, useDeleteComment } from '../hooks/useComments';
+import { useComments, useCreateComment, useUpdateComment, useDeleteComment } from '../hooks/useComments';
+import { generateAnonymousName } from '../lib/anonymousName';
 import type { Comment } from '../types';
 
 interface CommentsProps {
@@ -28,31 +29,95 @@ const formatTimeAgo = (dateStr: string): string => {
 const CommentItem = ({
   comment,
   currentUserId,
+  onEdit,
   onDelete,
+  isUpdating,
   isDeleting,
 }: {
   comment: Comment;
   currentUserId?: string;
+  onEdit: (id: string, content: string) => void;
   onDelete: (id: string) => void;
+  isUpdating: boolean;
   isDeleting: boolean;
 }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(comment.content);
+
   const isOwner = currentUserId && comment.userId === currentUserId;
+
+  const handleEditSubmit = () => {
+    const content = editContent.trim();
+    if (!content || content === comment.content) {
+      setIsEditing(false);
+      setEditContent(comment.content);
+      return;
+    }
+    onEdit(comment.id, content);
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditContent(comment.content);
+  };
+
+  if (isEditing) {
+    return (
+      <div className="comment-item editing">
+        <textarea
+          className="comment-edit-input"
+          value={editContent}
+          onChange={(e) => setEditContent(e.target.value)}
+          maxLength={500}
+          rows={2}
+          autoFocus
+        />
+        <div className="comment-edit-actions">
+          <span className="comment-char-count">{editContent.length}/500</span>
+          <button
+            className="comment-cancel"
+            onClick={handleCancel}
+            disabled={isUpdating}
+          >
+            취소
+          </button>
+          <button
+            className="comment-save"
+            onClick={handleEditSubmit}
+            disabled={!editContent.trim() || isUpdating}
+          >
+            {isUpdating ? '저장 중...' : '저장'}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="comment-item">
       <div className="comment-header">
         <span className="comment-author">
-          {comment.clerkId.slice(0, 8)}
+          {generateAnonymousName(comment.clerkId)}
         </span>
         <span className="comment-time">{formatTimeAgo(comment.createdAt)}</span>
         {isOwner && (
-          <button
-            className="comment-delete"
-            onClick={() => onDelete(comment.id)}
-            disabled={isDeleting}
-          >
-            삭제
-          </button>
+          <div className="comment-actions">
+            <button
+              className="comment-edit"
+              onClick={() => setIsEditing(true)}
+              disabled={isUpdating || isDeleting}
+            >
+              수정
+            </button>
+            <button
+              className="comment-delete"
+              onClick={() => onDelete(comment.id)}
+              disabled={isUpdating || isDeleting}
+            >
+              삭제
+            </button>
+          </div>
         )}
       </div>
       <p className="comment-content">{comment.content}</p>
@@ -71,6 +136,8 @@ const Comments = ({ pollId, currentUserId }: CommentsProps) => {
   } = useComments(pollId);
   const { mutateAsync: createComment, isPending: isCreating } =
     useCreateComment(pollId);
+  const { mutateAsync: updateComment, isPending: isUpdating } =
+    useUpdateComment(pollId);
   const { mutateAsync: deleteComment, isPending: isDeleting } =
     useDeleteComment(pollId);
 
@@ -86,6 +153,14 @@ const Comments = ({ pollId, currentUserId }: CommentsProps) => {
       setNewComment('');
     } catch {
       alert('댓글 등록에 실패했습니다.');
+    }
+  };
+
+  const handleEdit = async (commentId: string, content: string) => {
+    try {
+      await updateComment({ commentId, content });
+    } catch {
+      alert('댓글 수정에 실패했습니다.');
     }
   };
 
@@ -139,7 +214,9 @@ const Comments = ({ pollId, currentUserId }: CommentsProps) => {
             key={comment.id}
             comment={comment}
             currentUserId={currentUserId}
+            onEdit={handleEdit}
             onDelete={handleDelete}
+            isUpdating={isUpdating}
             isDeleting={isDeleting}
           />
         ))}

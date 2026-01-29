@@ -10,18 +10,6 @@ import Comments from '../components/Comments';
 import ExpirationTimer from '../components/ExpirationTimer';
 import { DetailSkeleton } from '../components/Skeleton';
 
-const CATEGORY_LABELS: Record<string, string> = {
-  politics: '정치',
-  society: '사회',
-  life: '라이프',
-  food: '음식',
-  entertainment: '연예',
-  sports: '스포츠',
-  tech: '기술',
-  economy: '경제',
-  fun: '재미',
-  other: '기타',
-};
 
 const PollDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -109,11 +97,11 @@ const PollDetailPage = () => {
 
       <div className="poll-card">
         <div className="poll-card-header">
-          {poll.category && (
-            <span className="poll-category">
-              {CATEGORY_LABELS[poll.category] || poll.category}
-            </span>
-          )}
+          <div className="poll-tags">
+            {poll.tags?.map((tag) => (
+              <span key={tag} className="poll-tag">#{tag}</span>
+            ))}
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             {poll.expiresAt && <ExpirationTimer expiresAt={poll.expiresAt} />}
             <span className="poll-responses">{poll.results.total}명 참여</span>

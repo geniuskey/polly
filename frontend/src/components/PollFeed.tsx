@@ -1,29 +1,21 @@
 import { useState } from 'react';
-import { usePolls } from '../hooks/usePolls';
+import { usePolls, usePopularTags } from '../hooks/usePolls';
 import PollCard from './PollCard';
 import { FeedSkeleton } from './Skeleton';
 
-const CATEGORIES = [
-  { id: '', label: '전체' },
-  { id: 'politics', label: '정치' },
-  { id: 'society', label: '사회' },
-  { id: 'life', label: '라이프' },
-  { id: 'food', label: '음식' },
-  { id: 'entertainment', label: '연예' },
-  { id: 'sports', label: '스포츠' },
-  { id: 'tech', label: '기술' },
-  { id: 'economy', label: '경제' },
-  { id: 'fun', label: '재미' },
-];
-
 const SORT_OPTIONS = [
   { id: 'latest', label: '최신순' },
+  { id: 'trending', label: '급상승' },
   { id: 'popular', label: '인기순' },
 ];
 
 const PollFeed = () => {
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedTag, setSelectedTag] = useState('');
   const [sortBy, setSortBy] = useState('latest');
+
+  const { data: tagsData } = usePopularTags(10);
+  const popularTags = tagsData?.data?.tags || [];
+
   const {
     data,
     fetchNextPage,
@@ -32,7 +24,7 @@ const PollFeed = () => {
     isLoading,
     isError,
     refetch,
-  } = usePolls(selectedCategory || undefined, sortBy);
+  } = usePolls(selectedTag || undefined, sortBy);
 
   const polls = data?.pages.flatMap((page) => page.polls) ?? [];
 
@@ -40,13 +32,19 @@ const PollFeed = () => {
     <div className="poll-feed">
       <div className="feed-controls">
         <div className="category-tabs">
-          {CATEGORIES.map((cat) => (
+          <button
+            className={`category-tab ${selectedTag === '' ? 'active' : ''}`}
+            onClick={() => setSelectedTag('')}
+          >
+            전체
+          </button>
+          {popularTags.map((tag) => (
             <button
-              key={cat.id}
-              className={`category-tab ${selectedCategory === cat.id ? 'active' : ''}`}
-              onClick={() => setSelectedCategory(cat.id)}
+              key={tag.id}
+              className={`category-tab ${selectedTag === tag.name ? 'active' : ''}`}
+              onClick={() => setSelectedTag(tag.name)}
             >
-              {cat.label}
+              #{tag.name}
             </button>
           ))}
         </div>

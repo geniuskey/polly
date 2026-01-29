@@ -1,29 +1,19 @@
 import { useState } from 'react';
+import type { KeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreatePoll } from '../hooks/usePolls';
 
 const MAX_OPTIONS = 4;
 const MIN_OPTIONS = 2;
-
-const CATEGORIES = [
-  { id: 'politics', label: '정치' },
-  { id: 'society', label: '사회' },
-  { id: 'life', label: '라이프' },
-  { id: 'food', label: '음식' },
-  { id: 'entertainment', label: '연예' },
-  { id: 'sports', label: '스포츠' },
-  { id: 'tech', label: '기술' },
-  { id: 'economy', label: '경제' },
-  { id: 'fun', label: '재미' },
-  { id: 'other', label: '기타' },
-];
+const MAX_TAGS = 5;
 
 const CreatePoll = () => {
   const navigate = useNavigate();
   const { mutateAsync: createPoll, isPending } = useCreatePoll();
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState(['', '']);
-  const [category, setCategory] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState('');
 
   const addOption = () => {
     if (options.length < MAX_OPTIONS) {
@@ -43,6 +33,27 @@ const CreatePoll = () => {
     setOptions(updated);
   };
 
+  const addTag = (tag: string) => {
+    const cleaned = tag.trim().toLowerCase().replace(/^#/, '');
+    if (cleaned && cleaned.length <= 20 && tags.length < MAX_TAGS && !tags.includes(cleaned)) {
+      setTags([...tags, cleaned]);
+    }
+    setTagInput('');
+  };
+
+  const removeTag = (tag: string) => {
+    setTags(tags.filter((t) => t !== tag));
+  };
+
+  const handleTagKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ' ' || e.key === ',') {
+      e.preventDefault();
+      addTag(tagInput);
+    } else if (e.key === 'Backspace' && !tagInput && tags.length > 0) {
+      removeTag(tags[tags.length - 1]);
+    }
+  };
+
   const isValid =
     question.trim().length >= 5 &&
     question.trim().length <= 200 &&
@@ -57,7 +68,7 @@ const CreatePoll = () => {
       const result = await createPoll({
         question: question.trim(),
         options: options.map((opt) => opt.trim()),
-        category: category || undefined,
+        tags: tags.length > 0 ? tags : undefined,
       });
       navigate(`/poll/${result.data.id}`);
     } catch {
@@ -115,19 +126,34 @@ const CreatePoll = () => {
         </div>
 
         <div className="form-group">
-          <label htmlFor="category">카테고리 (선택)</label>
-          <select
-            id="category"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-          >
-            <option value="">선택 안 함</option>
-            {CATEGORIES.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.label}
-              </option>
+          <label htmlFor="tags">태그 (선택, 최대 5개)</label>
+          <div className="tag-input-wrapper">
+            {tags.map((tag) => (
+              <span key={tag} className="tag-chip">
+                #{tag}
+                <button
+                  type="button"
+                  className="tag-remove"
+                  onClick={() => removeTag(tag)}
+                >
+                  &times;
+                </button>
+              </span>
             ))}
-          </select>
+            {tags.length < MAX_TAGS && (
+              <input
+                id="tags"
+                type="text"
+                className="tag-input"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={handleTagKeyDown}
+                onBlur={() => tagInput && addTag(tagInput)}
+                placeholder={tags.length === 0 ? '태그 입력 (Enter로 추가)' : ''}
+              />
+            )}
+          </div>
+          <span className="tag-hint">스페이스 또는 Enter로 태그 추가</span>
         </div>
 
         <button

@@ -12,6 +12,12 @@ const GENDER_LABELS: Record<string, string> = {
   other: '기타',
 };
 
+const GENDER_COLORS: Record<string, string> = {
+  male: '#3b82f6',
+  female: '#ec4899',
+  other: '#8b5cf6',
+};
+
 const AGE_LABELS: Record<string, string> = {
   '10s': '10대',
   '20s': '20대',
@@ -21,6 +27,15 @@ const AGE_LABELS: Record<string, string> = {
   '60+': '60+',
 };
 
+const AGE_COLORS: Record<string, string> = {
+  '10s': '#ef4444',
+  '20s': '#f97316',
+  '30s': '#eab308',
+  '40s': '#22c55e',
+  '50s': '#06b6d4',
+  '60+': '#8b5cf6',
+};
+
 type TabType = 'total' | 'gender' | 'age';
 
 const Results = ({ results, options }: ResultsProps) => {
@@ -28,6 +43,10 @@ const Results = ({ results, options }: ResultsProps) => {
 
   const hasGenderData = results.byGender && Object.keys(results.byGender).length > 0;
   const hasAgeData = results.byAgeGroup && Object.keys(results.byAgeGroup).length > 0;
+
+  // Get all available genders/ages for comparison chart
+  const genders = results.byGender ? Object.keys(results.byGender) : [];
+  const ageGroups = results.byAgeGroup ? Object.keys(results.byAgeGroup) : [];
 
   return (
     <div className="results">
@@ -78,57 +97,95 @@ const Results = ({ results, options }: ResultsProps) => {
         </div>
       )}
 
-      {activeTab === 'gender' && results.byGender && (
-        <div className="results-segments">
-          {Object.entries(results.byGender).map(([gender, segment]) => (
-            <div key={gender} className="segment-group">
-              <div className="segment-title">
-                {GENDER_LABELS[gender] || gender}
-                <span className="segment-count">({segment.count}명)</span>
+      {activeTab === 'gender' && hasGenderData && results.byGender && (
+        <div className="results-comparison">
+          {/* Legend */}
+          <div className="comparison-legend">
+            {genders.map((gender) => (
+              <div key={gender} className="legend-item">
+                <span
+                  className="legend-color"
+                  style={{ backgroundColor: GENDER_COLORS[gender] || '#6366f1' }}
+                />
+                <span className="legend-label">
+                  {GENDER_LABELS[gender] || gender}
+                  <span className="legend-count">({results.byGender![gender].count})</span>
+                </span>
               </div>
-              <div className="results-bars">
-                {segment.options.map((pct, i) => (
-                  <div key={i} className="result-row compact">
-                    <div className="result-label">{options[i]}</div>
-                    <div className="result-bar-wrapper">
-                      <div
-                        className="result-bar-fill"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                    <div className="result-value">{pct.toFixed(1)}%</div>
-                  </div>
-                ))}
+            ))}
+          </div>
+
+          {/* Comparison Chart */}
+          <div className="comparison-chart">
+            {options.map((option, optIndex) => (
+              <div key={optIndex} className="comparison-row">
+                <div className="comparison-label">{option}</div>
+                <div className="comparison-bars">
+                  {genders.map((gender) => {
+                    const pct = results.byGender![gender].options[optIndex];
+                    return (
+                      <div key={gender} className="comparison-bar-container">
+                        <div
+                          className="comparison-bar"
+                          style={{
+                            width: `${pct}%`,
+                            backgroundColor: GENDER_COLORS[gender] || '#6366f1',
+                          }}
+                        />
+                        <span className="comparison-value">{pct.toFixed(0)}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
-      {activeTab === 'age' && results.byAgeGroup && (
-        <div className="results-segments">
-          {Object.entries(results.byAgeGroup).map(([age, segment]) => (
-            <div key={age} className="segment-group">
-              <div className="segment-title">
-                {AGE_LABELS[age] || age}
-                <span className="segment-count">({segment.count}명)</span>
+      {activeTab === 'age' && hasAgeData && results.byAgeGroup && (
+        <div className="results-comparison">
+          {/* Legend */}
+          <div className="comparison-legend">
+            {ageGroups.map((age) => (
+              <div key={age} className="legend-item">
+                <span
+                  className="legend-color"
+                  style={{ backgroundColor: AGE_COLORS[age] || '#6366f1' }}
+                />
+                <span className="legend-label">
+                  {AGE_LABELS[age] || age}
+                  <span className="legend-count">({results.byAgeGroup![age].count})</span>
+                </span>
               </div>
-              <div className="results-bars">
-                {segment.options.map((pct, i) => (
-                  <div key={i} className="result-row compact">
-                    <div className="result-label">{options[i]}</div>
-                    <div className="result-bar-wrapper">
-                      <div
-                        className="result-bar-fill"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                    <div className="result-value">{pct.toFixed(1)}%</div>
-                  </div>
-                ))}
+            ))}
+          </div>
+
+          {/* Comparison Chart */}
+          <div className="comparison-chart">
+            {options.map((option, optIndex) => (
+              <div key={optIndex} className="comparison-row">
+                <div className="comparison-label">{option}</div>
+                <div className="comparison-bars">
+                  {ageGroups.map((age) => {
+                    const pct = results.byAgeGroup![age].options[optIndex];
+                    return (
+                      <div key={age} className="comparison-bar-container">
+                        <div
+                          className="comparison-bar"
+                          style={{
+                            width: `${pct}%`,
+                            backgroundColor: AGE_COLORS[age] || '#6366f1',
+                          }}
+                        />
+                        <span className="comparison-value">{pct.toFixed(0)}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 

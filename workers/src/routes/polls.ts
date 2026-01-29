@@ -8,26 +8,67 @@ const polls = new Hono<{ Bindings: Env; Variables: Variables }>();
 
 // GET /api/polls - 설문 목록 조회
 polls.get('/', async (c) => {
-  const category = c.req.query('category');
+  const tag = c.req.query('tag');
+  const category = c.req.query('category'); // backwards compatibility
   const sort = c.req.query('sort') || 'latest';
   const cursor = c.req.query('cursor');
   const limit = Math.min(Number(c.req.query('limit')) || 20, 50);
 
-  let query = `
-    SELECT p.*, COUNT(r.id) as response_count
-    FROM polls p
-    LEFT JOIN responses r ON p.id = r.poll_id
-    WHERE p.is_active = 1
-      AND (p.expires_at IS NULL OR p.expires_at > datetime('now'))
-  `;
+  let query: string;
   const bindings: (string | number)[] = [];
 
-  if (category) {
-    query += ' AND p.category = ?';
+  if (tag) {
+    // Filter by tag using junction table
+    query = `
+      SELECT p.*, COUNT(DISTINCT r.id) as response_count
+      FROM polls p
+      INNER JOIN poll_tags pt ON p.id = pt.poll_id
+      INNER JOIN tags t ON pt.tag_id = t.id
+      LEFT JOIN responses r ON p.id = r.poll_id
+      WHERE p.is_active = 1
+        AND (p.expires_at IS NULL OR p.expires_at > datetime('now'))
+        AND t.name = ?
+    `;
+    bindings.push(tag);
+  } else if (category) {
+    // Backwards compatibility: filter by category
+    query = `
+      SELECT p.*, COUNT(r.id) as response_count
+      FROM polls p
+      LEFT JOIN responses r ON p.id = r.poll_id
+      WHERE p.is_active = 1
+        AND (p.expires_at IS NULL OR p.expires_at > datetime('now'))
+        AND p.category = ?
+    `;
     bindings.push(category);
+  } else {
+    query = `
+      SELECT p.*, COUNT(r.id) as response_count
+      FROM polls p
+      LEFT JOIN responses r ON p.id = r.poll_id
+      WHERE p.is_active = 1
+        AND (p.expires_at IS NULL OR p.expires_at > datetime('now'))
+    `;
   }
 
-  if (sort === 'popular') {
+  if (sort === 'trending') {
+    // Trending: votes in last 24h weighted by recency
+    // Score = recent_votes / sqrt(age_hours + 2)
+    if (cursor) {
+      query += ' AND p.created_at < ?';
+      bindings.push(cursor);
+    }
+    query += ` GROUP BY p.id
+      ORDER BY (
+        SELECT COUNT(*) FROM responses r2
+        WHERE r2.poll_id = p.id
+        AND r2.created_at > datetime('now', '-24 hours')
+      ) * 1.0 / (
+        (julianday('now') - julianday(p.created_at)) * 24 + 2
+      ) DESC,
+      p.created_at DESC
+      LIMIT ?`;
+  } else if (sort === 'popular') {
     if (cursor) {
       query += ' AND p.created_at < ?';
       bindings.push(cursor);
@@ -50,12 +91,34 @@ polls.get('/', async (c) => {
   const items = hasNext ? rows.slice(0, limit) : rows;
   const nextCursor = hasNext ? items[items.length - 1].created_at : null;
 
+  // Fetch tags for each poll
+  const pollIds = items.map(row => row.id);
+  const tagsMap: Record<string, string[]> = {};
+
+  if (pollIds.length > 0) {
+    const placeholders = pollIds.map(() => '?').join(',');
+    const tagsResult = await c.env.survey_db.prepare(
+      `SELECT pt.poll_id, t.name
+       FROM poll_tags pt
+       INNER JOIN tags t ON pt.tag_id = t.id
+       WHERE pt.poll_id IN (${placeholders})`
+    ).bind(...pollIds).all<{ poll_id: string; name: string }>();
+
+    for (const row of tagsResult.results || []) {
+      if (!tagsMap[row.poll_id]) {
+        tagsMap[row.poll_id] = [];
+      }
+      tagsMap[row.poll_id].push(row.name);
+    }
+  }
+
   const pollList = items.map((row) => ({
     id: row.id,
     creatorId: row.creator_id,
     question: row.question,
     options: JSON.parse(row.options),
     category: row.category,
+    tags: tagsMap[row.id] || [],
     expiresAt: row.expires_at,
     isActive: !!row.is_active,
     createdAt: row.created_at,
@@ -85,12 +148,22 @@ polls.get('/:id', async (c) => {
     counts = initCounts(options.length);
   }
 
+  // Fetch tags for this poll
+  const tagsResult = await c.env.survey_db.prepare(
+    `SELECT t.name FROM poll_tags pt
+     INNER JOIN tags t ON pt.tag_id = t.id
+     WHERE pt.poll_id = ?`
+  ).bind(id).all<{ name: string }>();
+
+  const tags = (tagsResult.results || []).map(row => row.name);
+
   return success(c, {
     id: poll.id,
     creatorId: poll.creator_id,
     question: poll.question,
     options,
     category: poll.category,
+    tags,
     expiresAt: poll.expires_at,
     isActive: !!poll.is_active,
     createdAt: poll.created_at,
@@ -121,6 +194,12 @@ polls.post('/', requireAuth, async (c) => {
     return error(c, 'INVALID_INPUT', '유효한 옵션이 2개 이상 필요합니다', 400);
   }
 
+  // Validate and clean tags
+  const tags = (body.tags || [])
+    .map(t => t?.trim().toLowerCase().replace(/^#/, ''))
+    .filter(t => t && t.length >= 1 && t.length <= 20)
+    .slice(0, 5); // Max 5 tags
+
   const userId = c.get('userId');
 
   const result = await c.env.survey_db.prepare(
@@ -145,6 +224,29 @@ polls.post('/', requireAuth, async (c) => {
 
   if (!inserted) {
     return error(c, 'INTERNAL_ERROR', '설문 등록에 실패했습니다', 500);
+  }
+
+  // Process tags
+  if (tags.length > 0) {
+    for (const tagName of tags) {
+      // Insert tag if not exists, otherwise update count
+      await c.env.survey_db.prepare(
+        `INSERT INTO tags (name, poll_count) VALUES (?, 1)
+         ON CONFLICT(name) DO UPDATE SET poll_count = poll_count + 1`
+      ).bind(tagName).run();
+
+      // Get tag id
+      const tagRow = await c.env.survey_db.prepare(
+        'SELECT id FROM tags WHERE name = ?'
+      ).bind(tagName).first<{ id: number }>();
+
+      if (tagRow) {
+        // Link poll to tag
+        await c.env.survey_db.prepare(
+          'INSERT OR IGNORE INTO poll_tags (poll_id, tag_id) VALUES (?, ?)'
+        ).bind(inserted.id, tagRow.id).run();
+      }
+    }
   }
 
   // Initialize KV counts

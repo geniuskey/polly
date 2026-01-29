@@ -2,13 +2,21 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { apiClient } from '../lib/api';
 import type { CreatePollRequest, VoteRequest } from '../types';
 
-export const usePolls = (category?: string, sort?: string) => {
+export const usePolls = (tag?: string, sort?: string) => {
   return useInfiniteQuery({
-    queryKey: ['polls', category, sort],
+    queryKey: ['polls', tag, sort],
     queryFn: ({ pageParam }) =>
-      apiClient.getPolls({ category, sort, cursor: pageParam as string | undefined }),
+      apiClient.getPolls({ tag, sort, cursor: pageParam as string | undefined }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+  });
+};
+
+export const usePopularTags = (limit?: number) => {
+  return useQuery({
+    queryKey: ['tags', 'popular', limit],
+    queryFn: () => apiClient.getPopularTags(limit),
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
 };
 

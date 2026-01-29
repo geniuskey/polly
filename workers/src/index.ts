@@ -4,6 +4,7 @@ import { corsMiddleware } from './middleware/cors';
 import polls from './routes/polls';
 import users from './routes/users';
 import comments from './routes/comments';
+import tags from './routes/tags';
 
 const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
@@ -19,6 +20,7 @@ app.get('/api/health', (c) => {
 app.route('/api/polls', polls);
 app.route('/api/polls/:pollId/comments', comments);
 app.route('/api/users', users);
+app.route('/api/tags', tags);
 
 // 404 handler
 app.notFound((c) => {

@@ -25,6 +25,18 @@ export const useCreateComment = (pollId: string) => {
   });
 };
 
+export const useUpdateComment = (pollId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ commentId, content }: { commentId: string; content: string }) =>
+      apiClient.updateComment(pollId, commentId, { content }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['comments', pollId] });
+    },
+  });
+};
+
 export const useDeleteComment = (pollId: string) => {
   const queryClient = useQueryClient();
 
