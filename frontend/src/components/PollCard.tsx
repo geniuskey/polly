@@ -59,7 +59,7 @@ const PollCard = ({ poll }: PollCardProps) => {
     }
   };
 
-  const isExpired = poll.expiresAt && new Date(poll.expiresAt) < new Date();
+  const isExpired = poll.expiresAt ? new Date(poll.expiresAt) < new Date() : false;
 
   return (
     <div className="poll-card">
