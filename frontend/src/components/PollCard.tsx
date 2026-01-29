@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import type { Poll } from '../types';
-import { useVote } from '../hooks/usePolls';
+import { useVote, usePollDetail } from '../hooks/usePolls';
 import { generateFingerprint } from '../lib/fingerprint';
+import { saveVote, getVote } from '../lib/voteStorage';
 import ExpirationTimer from './ExpirationTimer';
 
 interface PollCardProps {
@@ -23,13 +24,30 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const PollCard = ({ poll }: PollCardProps) => {
-  const [voted, setVoted] = useState(false);
-  const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const storedVote = getVote(poll.id);
+  const [voted, setVoted] = useState(storedVote !== null);
+  const [selectedOption, setSelectedOption] = useState<number | null>(storedVote);
   const [justVoted, setJustVoted] = useState(false);
   const [results, setResults] = useState<
     { count: number; percentage: number }[] | null
   >(null);
+
   const { mutateAsync: vote, isPending } = useVote(poll.id);
+
+  // Fetch poll detail to get results if already voted
+  const { data: pollDetail } = usePollDetail(poll.id, storedVote !== null);
+
+  // Load results from poll detail if already voted
+  useEffect(() => {
+    if (storedVote !== null && pollDetail?.data?.results) {
+      setResults(
+        pollDetail.data.results.options.map((opt) => ({
+          count: opt.count,
+          percentage: opt.percentage,
+        }))
+      );
+    }
+  }, [storedVote, pollDetail]);
 
   const handleVote = async (optionIndex: number) => {
     if (voted || isPending) return;
@@ -37,6 +55,10 @@ const PollCard = ({ poll }: PollCardProps) => {
     try {
       const fingerprint = await generateFingerprint();
       const response = await vote({ optionIndex, fingerprint });
+
+      // Save to localStorage
+      saveVote(poll.id, optionIndex);
+
       setVoted(true);
       setSelectedOption(optionIndex);
       setJustVoted(true);
@@ -52,6 +74,8 @@ const PollCard = ({ poll }: PollCardProps) => {
     } catch (err) {
       const error = err as Error & { code?: string };
       if (error.code === 'DUPLICATE_VOTE') {
+        // User has voted before but it wasn't in localStorage
+        // Try to get their vote from server or just show alert
         alert('이미 투표한 설문입니다.');
       } else {
         alert('투표 중 오류가 발생했습니다.');
@@ -87,7 +111,12 @@ const PollCard = ({ poll }: PollCardProps) => {
             onClick={() => handleVote(index)}
             disabled={voted || isPending || isExpired}
           >
-            <span className="option-text">{option}</span>
+            <span className="option-text">
+              {selectedOption === index && voted && (
+                <span className="my-vote-badge">내 선택</span>
+              )}
+              {option}
+            </span>
             {results && (
               <div className="option-result">
                 <div

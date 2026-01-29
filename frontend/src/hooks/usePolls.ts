@@ -20,6 +20,15 @@ export const usePoll = (id: string) => {
   });
 };
 
+export const usePollDetail = (id: string, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: ['poll', id],
+    queryFn: () => apiClient.getPoll(id),
+    enabled: !!id && enabled,
+    staleTime: 1000 * 60, // Cache for 1 minute
+  });
+};
+
 export const useCreatePoll = () => {
   const queryClient = useQueryClient();
 
