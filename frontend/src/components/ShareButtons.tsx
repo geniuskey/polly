@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { shareToKakao } from '../lib/kakao';
 
 interface ShareButtonsProps {
   pollId: string;
@@ -30,9 +31,7 @@ const ShareButtons = ({ pollId, question }: ShareButtonsProps) => {
   };
 
   const handleKakaoShare = () => {
-    // 카카오스토리 공유 (SDK 없이 사용 가능)
-    const kakaoStoryUrl = `https://story.kakao.com/share?url=${encodeURIComponent(shareUrl)}`;
-    window.open(kakaoStoryUrl, '_blank', 'width=500,height=600');
+    shareToKakao(question, pollId);
   };
 
   const handleTwitterShare = () => {
@@ -46,7 +45,7 @@ const ShareButtons = ({ pollId, question }: ShareButtonsProps) => {
         {copied ? '복사됨!' : '링크 복사'}
       </button>
       <button className="share-btn kakao" onClick={handleKakaoShare}>
-        카카오스토리
+        카카오톡
       </button>
       <button className="share-btn twitter" onClick={handleTwitterShare}>
         X (트위터)

@@ -1,12 +1,18 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout';
 import PollFeed from './components/PollFeed';
 import CreatePoll from './components/CreatePoll';
 import Profile from './components/Profile';
 import PollDetailPage from './pages/PollDetailPage';
+import { initKakao } from './lib/kakao';
 import './App.css';
 
 const App = () => {
+  useEffect(() => {
+    initKakao();
+  }, []);
+
   return (
     <BrowserRouter>
       <Routes>
