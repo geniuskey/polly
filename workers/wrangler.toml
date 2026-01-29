@@ -1,17 +1,17 @@
-name = "votepulse-api"
+name = "vibepulse-api"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 
 # D1 Database
 [[d1_databases]]
-binding = "DB"
+binding = "survey_db"
 database_name = "survey-db"
-database_id = "placeholder-replace-with-actual-id"
+database_id = "56ac87f7-be03-4319-aed2-50cae291e1d7"
 
 # KV Namespace
 [[kv_namespaces]]
-binding = "KV"
-id = "placeholder-replace-with-actual-id"
+binding = "vibepulse_cache"
+id = "6395f5c06a634815905802f7608aa4d1"
 
 # ============================================
 # Development
@@ -25,19 +25,19 @@ ALLOWED_ORIGINS = "http://localhost:5173"
 # ============================================
 [env.production.vars]
 ENVIRONMENT = "production"
-ALLOWED_ORIGINS = "https://votepulse.pages.dev"
+ALLOWED_ORIGINS = "https://vibepulse.pages.dev"
 
 [env.production]
-name = "votepulse-api"
+name = "vibepulse-api"
 
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "survey-db"
-database_id = "placeholder-replace-with-actual-id"
+database_id = "56ac87f7-be03-4319-aed2-50cae291e1d7"
 
 [[env.production.kv_namespaces]]
 binding = "KV"
-id = "placeholder-replace-with-actual-id"
+id = "6395f5c06a634815905802f7608aa4d1"
 
 # Local dev settings
 [dev]

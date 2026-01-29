@@ -9,7 +9,7 @@ const ShareButtons = ({ pollId, question }: ShareButtonsProps) => {
   const [copied, setCopied] = useState(false);
 
   const shareUrl = `${window.location.origin}/poll/${pollId}`;
-  const shareText = `[VotePulse] ${question}`;
+  const shareText = `[VibePulse] ${question}`;
 
   const handleCopyLink = async () => {
     try {

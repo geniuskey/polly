@@ -2,7 +2,7 @@
 set -e
 
 echo "========================================="
-echo "  VotePulse 배포 스크립트"
+echo "  VibePulse 배포 스크립트"
 echo "========================================="
 
 # 1. 로그인 확인
@@ -30,11 +30,11 @@ fi
 # 3. KV 네임스페이스 생성 (없으면)
 echo ""
 echo "[3/6] KV 네임스페이스 확인..."
-KV_ID=$(npx wrangler kv namespace list 2>/dev/null | grep -A1 "votepulse-cache" | grep "id" | awk -F'"' '{print $4}')
+KV_ID=$(npx wrangler kv namespace list 2>/dev/null | grep -A1 "vibepulse-cache" | grep "id" | awk -F'"' '{print $4}')
 if [ -z "$KV_ID" ]; then
-  echo "  -> votepulse-cache 생성 중..."
-  npx wrangler kv namespace create "votepulse-cache"
-  KV_ID=$(npx wrangler kv namespace list 2>/dev/null | grep -A1 "votepulse-cache" | grep "id" | awk -F'"' '{print $4}')
+  echo "  -> vibepulse-cache 생성 중..."
+  npx wrangler kv namespace create "vibepulse-cache"
+  KV_ID=$(npx wrangler kv namespace list 2>/dev/null | grep -A1 "vibepulse-cache" | grep "id" | awk -F'"' '{print $4}')
   echo "  -> 생성 완료: $KV_ID"
 else
   echo "  -> 이미 존재: $KV_ID"
@@ -67,6 +67,6 @@ echo ""
 echo "  # 4. Frontend 빌드 & Pages 배포"
 echo "  cd ../frontend"
 echo "  npm run build"
-echo "  npx wrangler pages deploy dist --project-name=votepulse"
+echo "  npx wrangler pages deploy dist --project-name=vibepulse"
 echo ""
 echo "========================================="

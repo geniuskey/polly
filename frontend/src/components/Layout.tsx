@@ -11,7 +11,7 @@ const Layout = () => {
     <div className="app-layout">
       <header className="app-header">
         <Link to="/" className="logo">
-          VotePulse
+          VibePulse
         </Link>
         <nav className="nav">
           <Link to="/">홈</Link>
