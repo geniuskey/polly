@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
 import { usePoll, useVote } from '../hooks/usePolls';
 import { generateFingerprint } from '../lib/fingerprint';
+import { saveVote, getVote } from '../lib/voteStorage';
 import Results from '../components/Results';
 import ShareButtons from '../components/ShareButtons';
 import Comments from '../components/Comments';
+import ExpirationTimer from '../components/ExpirationTimer';
 import { DetailSkeleton } from '../components/Skeleton';
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -25,8 +27,21 @@ const PollDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const { data, isLoading, isError, refetch } = usePoll(id!);
   const { mutateAsync: vote, isPending } = useVote(id!);
-  const [voted, setVoted] = useState(false);
-  const [selectedOption, setSelectedOption] = useState<number | null>(null);
+
+  // Check localStorage for stored vote
+  const storedVote = id ? getVote(id) : null;
+
+  const [voted, setVoted] = useState(storedVote !== null);
+  const [selectedOption, setSelectedOption] = useState<number | null>(storedVote);
+  const [justVoted, setJustVoted] = useState(false);
+
+  // Update state when storedVote changes (e.g., on navigation)
+  useEffect(() => {
+    if (storedVote !== null) {
+      setVoted(true);
+      setSelectedOption(storedVote);
+    }
+  }, [storedVote]);
 
   let currentUserId: string | undefined;
   try {
@@ -52,20 +67,31 @@ const PollDetailPage = () => {
   }
 
   const poll = data.data;
-  const hasVoted = voted || (poll.results.total > 0 && poll.myVote != null);
+  const hasVoted = voted || storedVote !== null;
+  const isExpired = poll.expiresAt ? new Date(poll.expiresAt) < new Date() : false;
 
   const handleVote = async (optionIndex: number) => {
     if (hasVoted || isPending) return;
     try {
       const fingerprint = await generateFingerprint();
       await vote({ optionIndex, fingerprint });
+
+      // Save to localStorage
+      saveVote(poll.id, optionIndex);
+
       setVoted(true);
       setSelectedOption(optionIndex);
+      setJustVoted(true);
       refetch();
+
+      setTimeout(() => setJustVoted(false), 500);
     } catch (err) {
       const error = err as Error & { code?: string };
       if (error.code === 'DUPLICATE_VOTE') {
+        // Save to localStorage even if already voted
+        saveVote(poll.id, optionIndex);
         setVoted(true);
+        setSelectedOption(optionIndex);
         refetch();
       } else if (error.code === 'POLL_EXPIRED') {
         alert('마감된 설문입니다.');
@@ -75,7 +101,7 @@ const PollDetailPage = () => {
     }
   };
 
-  const effectiveSelected = selectedOption ?? poll.myVote ?? null;
+  const effectiveSelected = selectedOption ?? storedVote ?? null;
 
   return (
     <div className="poll-detail">
@@ -88,26 +114,28 @@ const PollDetailPage = () => {
               {CATEGORY_LABELS[poll.category] || poll.category}
             </span>
           )}
-          <span className="poll-responses">{poll.results.total}명 참여</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {poll.expiresAt && <ExpirationTimer expiresAt={poll.expiresAt} />}
+            <span className="poll-responses">{poll.results.total}명 참여</span>
+          </div>
         </div>
 
         <h2 className="poll-question">{poll.question}</h2>
-
-        {poll.expiresAt && (
-          <div className="poll-expires">
-            마감: {new Date(poll.expiresAt).toLocaleDateString('ko-KR')}
-          </div>
-        )}
 
         <div className="poll-options">
           {poll.options.map((option, index) => (
             <button
               key={index}
-              className={`poll-option ${hasVoted ? 'voted' : ''} ${effectiveSelected === index ? 'selected' : ''}`}
+              className={`poll-option ${hasVoted ? 'voted' : ''} ${effectiveSelected === index ? 'selected' : ''} ${justVoted && effectiveSelected === index ? 'just-voted' : ''}`}
               onClick={() => handleVote(index)}
-              disabled={hasVoted || isPending}
+              disabled={hasVoted || isPending || isExpired}
             >
-              <span className="option-text">{option}</span>
+              <span className="option-text">
+                {effectiveSelected === index && hasVoted && (
+                  <span className="my-vote-badge">내 선택</span>
+                )}
+                {option}
+              </span>
               {hasVoted && poll.results.options[index] && (
                 <div className="option-result">
                   <div

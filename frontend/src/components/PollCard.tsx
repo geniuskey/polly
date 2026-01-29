@@ -25,7 +25,9 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const PollCard = ({ poll }: PollCardProps) => {
   const storedVote = getVote(poll.id);
-  const [voted, setVoted] = useState(storedVote !== null);
+  const hasStoredVote = storedVote !== null;
+
+  const [voted, setVoted] = useState(hasStoredVote);
   const [selectedOption, setSelectedOption] = useState<number | null>(storedVote);
   const [justVoted, setJustVoted] = useState(false);
   const [results, setResults] = useState<
@@ -34,12 +36,12 @@ const PollCard = ({ poll }: PollCardProps) => {
 
   const { mutateAsync: vote, isPending } = useVote(poll.id);
 
-  // Fetch poll detail to get results if already voted
-  const { data: pollDetail } = usePollDetail(poll.id, storedVote !== null);
+  // Always fetch poll detail if user has voted to get latest results
+  const { data: pollDetail, isLoading: isLoadingDetail } = usePollDetail(poll.id, hasStoredVote);
 
-  // Load results from poll detail if already voted
+  // Set results from poll detail when data arrives
   useEffect(() => {
-    if (storedVote !== null && pollDetail?.data?.results) {
+    if (hasStoredVote && pollDetail?.data?.results) {
       setResults(
         pollDetail.data.results.options.map((opt) => ({
           count: opt.count,
@@ -47,7 +49,7 @@ const PollCard = ({ poll }: PollCardProps) => {
         }))
       );
     }
-  }, [storedVote, pollDetail]);
+  }, [hasStoredVote, pollDetail]);
 
   const handleVote = async (optionIndex: number) => {
     if (voted || isPending) return;
@@ -74,8 +76,10 @@ const PollCard = ({ poll }: PollCardProps) => {
     } catch (err) {
       const error = err as Error & { code?: string };
       if (error.code === 'DUPLICATE_VOTE') {
-        // User has voted before but it wasn't in localStorage
-        // Try to get their vote from server or just show alert
+        // User has voted but wasn't in localStorage - save it now
+        saveVote(poll.id, optionIndex);
+        setVoted(true);
+        setSelectedOption(optionIndex);
         alert('이미 투표한 설문입니다.');
       } else {
         alert('투표 중 오류가 발생했습니다.');
@@ -84,6 +88,8 @@ const PollCard = ({ poll }: PollCardProps) => {
   };
 
   const isExpired = poll.expiresAt ? new Date(poll.expiresAt) < new Date() : false;
+  const showResults = voted && results !== null;
+  const isLoadingResults = voted && results === null && isLoadingDetail;
 
   return (
     <div className="poll-card">
@@ -117,7 +123,7 @@ const PollCard = ({ poll }: PollCardProps) => {
               )}
               {option}
             </span>
-            {results && (
+            {showResults && results[index] && (
               <div className="option-result">
                 <div
                   className="option-bar"
@@ -127,6 +133,11 @@ const PollCard = ({ poll }: PollCardProps) => {
                   {results[index].percentage.toFixed(1)}%
                 </span>
               </div>
+            )}
+            {isLoadingResults && (
+              <span className="option-percentage" style={{ opacity: 0.5 }}>
+                로딩...
+              </span>
             )}
           </button>
         ))}
