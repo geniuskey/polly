@@ -42,7 +42,7 @@ polls.get('/', async (c) => {
   }
   bindings.push(limit + 1);
 
-  const stmt = c.env.DB.prepare(query);
+  const stmt = c.env.survey_db.prepare(query);
   const result = await stmt.bind(...bindings).all<PollRow & { response_count: number }>();
 
   const rows = result.results || [];
@@ -69,7 +69,7 @@ polls.get('/', async (c) => {
 polls.get('/:id', async (c) => {
   const { id } = c.req.param();
 
-  const poll = await c.env.DB.prepare('SELECT * FROM polls WHERE id = ?')
+  const poll = await c.env.survey_db.prepare('SELECT * FROM polls WHERE id = ?')
     .bind(id)
     .first<PollRow>();
 
@@ -80,7 +80,7 @@ polls.get('/:id', async (c) => {
   const options = JSON.parse(poll.options) as string[];
 
   // Get vote counts from KV (or compute from D1)
-  let counts = await getVoteCounts(c.env.KV, id);
+  let counts = await getVoteCounts(c.env.vibepulse_cache, id);
   if (!counts) {
     counts = initCounts(options.length);
   }
@@ -123,7 +123,7 @@ polls.post('/', requireAuth, async (c) => {
 
   const userId = c.get('userId');
 
-  const result = await c.env.DB.prepare(
+  const result = await c.env.survey_db.prepare(
     `INSERT INTO polls (creator_id, question, options, category, expires_at)
      VALUES (?, ?, ?, ?, ?)`,
   )
@@ -137,7 +137,7 @@ polls.post('/', requireAuth, async (c) => {
     .run();
 
   // Get the inserted poll ID
-  const inserted = await c.env.DB.prepare(
+  const inserted = await c.env.survey_db.prepare(
     'SELECT id FROM polls WHERE creator_id = ? ORDER BY created_at DESC LIMIT 1',
   )
     .bind(userId || null)
@@ -148,7 +148,7 @@ polls.post('/', requireAuth, async (c) => {
   }
 
   // Initialize KV counts
-  await c.env.KV.put(
+  await c.env.vibepulse_cache.put(
     `poll:${inserted.id}:counts`,
     JSON.stringify(initCounts(options.length)),
   );
@@ -167,7 +167,7 @@ polls.post('/:id/vote', optionalAuth, async (c) => {
   }
 
   // Check poll exists and is active
-  const poll = await c.env.DB.prepare(
+  const poll = await c.env.survey_db.prepare(
     'SELECT * FROM polls WHERE id = ? AND is_active = 1',
   )
     .bind(id)
@@ -188,7 +188,7 @@ polls.post('/:id/vote', optionalAuth, async (c) => {
   }
 
   // Check duplicate vote
-  const existing = await c.env.DB.prepare(
+  const existing = await c.env.survey_db.prepare(
     'SELECT 1 FROM responses WHERE poll_id = ? AND fingerprint = ?',
   )
     .bind(id, body.fingerprint)
@@ -205,7 +205,7 @@ polls.post('/:id/vote', optionalAuth, async (c) => {
 
   const userId = c.get('userId');
   if (userId) {
-    const profile = await c.env.DB.prepare(
+    const profile = await c.env.survey_db.prepare(
       'SELECT * FROM user_profiles WHERE user_id = ?',
     )
       .bind(userId)
@@ -219,7 +219,7 @@ polls.post('/:id/vote', optionalAuth, async (c) => {
   }
 
   // Insert response
-  await c.env.DB.prepare(
+  await c.env.survey_db.prepare(
     `INSERT INTO responses (poll_id, option_index, user_id, fingerprint, gender, age_group, region)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
   )
@@ -228,7 +228,7 @@ polls.post('/:id/vote', optionalAuth, async (c) => {
 
   // Update KV counts
   const counts = await incrementVoteCount(
-    c.env.KV,
+    c.env.vibepulse_cache,
     id,
     body.optionIndex,
     options.length,

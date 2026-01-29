@@ -17,7 +17,7 @@ export const optionalAuth: MiddlewareHandler<{
       if (clerkId) {
         c.set('clerkId', clerkId);
         // Resolve internal user ID
-        const user = await c.env.DB.prepare(
+        const user = await c.env.survey_db.prepare(
           'SELECT id FROM users WHERE clerk_id = ?',
         )
           .bind(clerkId)
@@ -66,15 +66,15 @@ export const requireAuth: MiddlewareHandler<{
     c.set('clerkId', clerkId);
 
     // Ensure user exists in DB (auto-create on first login)
-    let user = await c.env.DB.prepare(
+    let user = await c.env.survey_db.prepare(
       'SELECT id FROM users WHERE clerk_id = ?',
     )
       .bind(clerkId)
       .first<{ id: string }>();
 
     if (!user) {
-      await c.env.DB.prepare('INSERT INTO users (clerk_id) VALUES (?)').bind(clerkId).run();
-      user = await c.env.DB.prepare(
+      await c.env.survey_db.prepare('INSERT INTO users (clerk_id) VALUES (?)').bind(clerkId).run();
+      user = await c.env.survey_db.prepare(
         'SELECT id FROM users WHERE clerk_id = ?',
       )
         .bind(clerkId)

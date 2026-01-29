@@ -1,8 +1,8 @@
 import type { Context } from 'hono';
 
 export interface Env {
-  DB: D1Database;
-  KV: KVNamespace;
+  survey_db: D1Database;
+  vibepulse_cache: KVNamespace;
   CLERK_SECRET_KEY: string;
   ENVIRONMENT: string;
   ALLOWED_ORIGINS: string;

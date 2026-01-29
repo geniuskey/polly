@@ -12,7 +12,7 @@ users.use('/*', requireAuth);
 users.get('/me', async (c) => {
   const userId = c.get('userId')!;
 
-  const profile = await c.env.DB.prepare(
+  const profile = await c.env.survey_db.prepare(
     'SELECT * FROM user_profiles WHERE user_id = ?',
   )
     .bind(userId)
@@ -60,7 +60,7 @@ users.put('/me/profile', async (c) => {
   }
 
   // Upsert profile
-  await c.env.DB.prepare(
+  await c.env.survey_db.prepare(
     `INSERT INTO user_profiles (user_id, gender, age_group, region, share_gender, share_age_group, share_region)
      VALUES (?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(user_id) DO UPDATE SET
@@ -115,7 +115,7 @@ users.get('/me/polls', async (c) => {
   query += ' GROUP BY p.id ORDER BY p.created_at DESC LIMIT ?';
   bindings.push(limit + 1);
 
-  const result = await c.env.DB.prepare(query)
+  const result = await c.env.survey_db.prepare(query)
     .bind(...bindings)
     .all<PollRow & { response_count: number }>();
 
@@ -162,7 +162,7 @@ users.get('/me/votes', async (c) => {
   query += ' GROUP BY p.id ORDER BY r.created_at DESC LIMIT ?';
   bindings.push(limit + 1);
 
-  const result = await c.env.DB.prepare(query)
+  const result = await c.env.survey_db.prepare(query)
     .bind(...bindings)
     .all<PollRow & { response_count: number }>();
 

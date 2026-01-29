@@ -27,7 +27,7 @@ comments.get('/', async (c) => {
   query += ' ORDER BY c.created_at DESC LIMIT ?';
   bindings.push(limit + 1);
 
-  const result = await c.env.DB.prepare(query)
+  const result = await c.env.survey_db.prepare(query)
     .bind(...bindings)
     .all<CommentRow & { clerk_id: string }>();
 
@@ -60,7 +60,7 @@ comments.post('/', requireAuth, async (c) => {
   }
 
   // 설문 존재 확인
-  const poll = await c.env.DB.prepare('SELECT id FROM polls WHERE id = ?')
+  const poll = await c.env.survey_db.prepare('SELECT id FROM polls WHERE id = ?')
     .bind(pollId)
     .first();
 
@@ -68,13 +68,13 @@ comments.post('/', requireAuth, async (c) => {
     return error(c, 'POLL_NOT_FOUND', '설문을 찾을 수 없습니다', 404);
   }
 
-  await c.env.DB.prepare(
+  await c.env.survey_db.prepare(
     'INSERT INTO comments (poll_id, user_id, content) VALUES (?, ?, ?)',
   )
     .bind(pollId, userId, content)
     .run();
 
-  const inserted = await c.env.DB.prepare(
+  const inserted = await c.env.survey_db.prepare(
     'SELECT c.*, u.clerk_id FROM comments c JOIN users u ON c.user_id = u.id WHERE c.poll_id = ? AND c.user_id = ? ORDER BY c.created_at DESC LIMIT 1',
   )
     .bind(pollId, userId)
@@ -99,7 +99,7 @@ comments.delete('/:commentId', requireAuth, async (c) => {
   const commentId = c.req.param('commentId');
   const userId = c.get('userId')!;
 
-  const comment = await c.env.DB.prepare(
+  const comment = await c.env.survey_db.prepare(
     'SELECT id, user_id FROM comments WHERE id = ?',
   )
     .bind(commentId)
@@ -113,7 +113,7 @@ comments.delete('/:commentId', requireAuth, async (c) => {
     return error(c, 'FORBIDDEN', '본인의 댓글만 삭제할 수 있습니다', 403);
   }
 
-  await c.env.DB.prepare('DELETE FROM comments WHERE id = ?')
+  await c.env.survey_db.prepare('DELETE FROM comments WHERE id = ?')
     .bind(commentId)
     .run();
 
