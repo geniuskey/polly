@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { Poll } from '../types';
 import { useVote } from '../hooks/usePolls';
 import { generateFingerprint } from '../lib/fingerprint';
+import ExpirationTimer from './ExpirationTimer';
 
 interface PollCardProps {
   poll: Poll;
@@ -24,6 +25,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 const PollCard = ({ poll }: PollCardProps) => {
   const [voted, setVoted] = useState(false);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [justVoted, setJustVoted] = useState(false);
   const [results, setResults] = useState<
     { count: number; percentage: number }[] | null
   >(null);
@@ -37,12 +39,16 @@ const PollCard = ({ poll }: PollCardProps) => {
       const response = await vote({ optionIndex, fingerprint });
       setVoted(true);
       setSelectedOption(optionIndex);
+      setJustVoted(true);
       setResults(
         response.data.options.map((opt) => ({
           count: opt.count,
           percentage: opt.percentage,
         })),
       );
+
+      // Remove animation class after animation completes
+      setTimeout(() => setJustVoted(false), 500);
     } catch (err) {
       const error = err as Error & { code?: string };
       if (error.code === 'DUPLICATE_VOTE') {
@@ -53,6 +59,8 @@ const PollCard = ({ poll }: PollCardProps) => {
     }
   };
 
+  const isExpired = poll.expiresAt && new Date(poll.expiresAt) < new Date();
+
   return (
     <div className="poll-card">
       <div className="poll-card-header">
@@ -61,7 +69,10 @@ const PollCard = ({ poll }: PollCardProps) => {
             {CATEGORY_LABELS[poll.category] || poll.category}
           </span>
         )}
-        <span className="poll-responses">{poll.responseCount}명 참여</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {poll.expiresAt && <ExpirationTimer expiresAt={poll.expiresAt} />}
+          <span className="poll-responses">{poll.responseCount}명 참여</span>
+        </div>
       </div>
 
       <Link to={`/poll/${poll.id}`} className="poll-question-link">
@@ -72,9 +83,9 @@ const PollCard = ({ poll }: PollCardProps) => {
         {poll.options.map((option, index) => (
           <button
             key={index}
-            className={`poll-option ${voted ? 'voted' : ''} ${selectedOption === index ? 'selected' : ''}`}
+            className={`poll-option ${voted ? 'voted' : ''} ${selectedOption === index ? 'selected' : ''} ${justVoted && selectedOption === index ? 'just-voted' : ''}`}
             onClick={() => handleVote(index)}
-            disabled={voted || isPending}
+            disabled={voted || isPending || isExpired}
           >
             <span className="option-text">{option}</span>
             {results && (

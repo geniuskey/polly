@@ -5,8 +5,18 @@ import {
   SignInButton,
   UserButton,
 } from '@clerk/clerk-react';
+import { useTheme } from '../hooks/useTheme';
+
+const ThemeIcon = ({ isDark }: { isDark: boolean }) => {
+  if (isDark) {
+    return <span>🌙</span>;
+  }
+  return <span>☀️</span>;
+};
 
 const Layout = () => {
+  const { toggleTheme, isDark } = useTheme();
+
   return (
     <div className="app-layout">
       <header className="app-header">
@@ -25,6 +35,13 @@ const Layout = () => {
               <button className="sign-in-btn">로그인</button>
             </SignInButton>
           </SignedOut>
+          <button
+            className="theme-toggle"
+            onClick={toggleTheme}
+            aria-label="테마 변경"
+          >
+            <ThemeIcon isDark={isDark} />
+          </button>
         </nav>
       </header>
       <main className="app-main">
