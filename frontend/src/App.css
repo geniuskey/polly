@@ -579,10 +579,52 @@
   margin-bottom: 0.5rem;
 }
 
+.feed-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.hide-voted-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  padding: 0.4rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.hide-voted-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.hide-voted-btn.active {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.voted-count {
+  background: var(--color-primary);
+  color: white;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 9999px;
+  font-weight: 600;
+}
+
 .sort-options {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 1rem;
 }
 
 .sort-btn {

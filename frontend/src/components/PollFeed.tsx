@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { usePolls, usePopularTags } from '../hooks/usePolls';
 import PollCard from './PollCard';
 import { FeedSkeleton } from './Skeleton';
+import { hasVoted } from '../lib/voteStorage';
 
 const SORT_OPTIONS = [
   { id: 'latest', label: '최신순' },
@@ -12,6 +13,9 @@ const SORT_OPTIONS = [
 const PollFeed = () => {
   const [selectedTag, setSelectedTag] = useState('');
   const [sortBy, setSortBy] = useState('latest');
+  const [hideVoted, setHideVoted] = useState(() => {
+    return localStorage.getItem('hideVotedPolls') === 'true';
+  });
 
   const { data: tagsData } = usePopularTags(10);
   const popularTags = tagsData?.data?.tags || [];
@@ -26,7 +30,16 @@ const PollFeed = () => {
     refetch,
   } = usePolls(selectedTag || undefined, sortBy);
 
-  const polls = data?.pages.flatMap((page) => page.polls) ?? [];
+  const allPolls = data?.pages.flatMap((page) => page.polls) ?? [];
+  const polls = hideVoted ? allPolls.filter((poll) => !hasVoted(poll.id)) : allPolls;
+
+  const toggleHideVoted = () => {
+    const newValue = !hideVoted;
+    setHideVoted(newValue);
+    localStorage.setItem('hideVotedPolls', String(newValue));
+  };
+
+  const votedCount = allPolls.length - polls.length;
 
   return (
     <div className="poll-feed">
@@ -48,16 +61,26 @@ const PollFeed = () => {
             </button>
           ))}
         </div>
-        <div className="sort-options">
-          {SORT_OPTIONS.map((opt) => (
-            <button
-              key={opt.id}
-              className={`sort-btn ${sortBy === opt.id ? 'active' : ''}`}
-              onClick={() => setSortBy(opt.id)}
-            >
-              {opt.label}
-            </button>
-          ))}
+        <div className="feed-actions">
+          <button
+            className={`hide-voted-btn ${hideVoted ? 'active' : ''}`}
+            onClick={toggleHideVoted}
+            title={hideVoted ? '참여한 설문 표시' : '참여한 설문 숨기기'}
+          >
+            {hideVoted ? '참여완료 숨김' : '참여완료 표시'}
+            {votedCount > 0 && <span className="voted-count">{votedCount}</span>}
+          </button>
+          <div className="sort-options">
+            {SORT_OPTIONS.map((opt) => (
+              <button
+                key={opt.id}
+                className={`sort-btn ${sortBy === opt.id ? 'active' : ''}`}
+                onClick={() => setSortBy(opt.id)}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -72,7 +95,11 @@ const PollFeed = () => {
           </div>
         )}
         {!isLoading && !isError && polls.length === 0 && (
-          <div className="empty">아직 등록된 설문이 없습니다.</div>
+          <div className="empty">
+            {hideVoted && allPolls.length > 0
+              ? '모든 설문에 참여했습니다! 🎉'
+              : '아직 등록된 설문이 없습니다.'}
+          </div>
         )}
         {polls.map((poll) => (
           <PollCard key={poll.id} poll={poll} />
