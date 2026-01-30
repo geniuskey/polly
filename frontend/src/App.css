@@ -1,4 +1,91 @@
 /* ============================================
+   Animations & Micro-interactions
+   ============================================ */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg); }
+  75% { transform: rotate(3deg); }
+}
+
+@keyframes ripple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+@keyframes celebrate {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.02); }
+  50% { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+
+@keyframes numberPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+  50% { box-shadow: 0 0 20px 4px rgba(99, 102, 241, 0.3); }
+}
+
+/* ============================================
    Layout
    ============================================ */
 .app-layout {
@@ -24,6 +111,15 @@
   font-weight: 800;
   color: var(--color-primary);
   text-decoration: none;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.logo:hover {
+  transform: scale(1.05);
+}
+
+.logo:active {
+  transform: scale(0.98);
 }
 
 /* Desktop Navigation */
@@ -38,10 +134,28 @@
   text-decoration: none;
   font-size: 0.9rem;
   font-weight: 500;
+  position: relative;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.nav a::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--color-primary);
+  transition: width 0.2s ease;
 }
 
 .nav a:hover {
   color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+.nav a:hover::after {
+  width: 100%;
 }
 
 .sign-in-btn {
@@ -53,10 +167,20 @@
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 500;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
 }
 
 .sign-in-btn:hover {
   background: var(--color-primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.sign-in-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
 }
 
 /* Mobile Header Actions - hidden on desktop */
@@ -150,12 +274,20 @@
   padding: 0.5rem;
   text-decoration: none;
   color: var(--color-text-secondary);
-  transition: color 0.2s;
+  transition: color 0.2s ease, transform 0.2s ease;
   min-height: 56px;
+}
+
+.mobile-nav-item:active {
+  transform: scale(0.9);
 }
 
 .mobile-nav-item.active {
   color: var(--color-primary);
+}
+
+.mobile-nav-item.active .mobile-nav-icon {
+  animation: bounce 0.4s ease;
 }
 
 .mobile-nav-icon {
@@ -254,11 +386,17 @@
   cursor: pointer;
   font-size: 0.9rem;
   color: var(--color-text-secondary);
-  transition: background 0.2s;
+  transition: all 0.2s ease;
 }
 
 .load-more:hover {
   background: var(--color-bg-tertiary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+.load-more:active {
+  transform: translateY(0);
 }
 
 /* ============================================
@@ -269,7 +407,18 @@
   border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 1.25rem;
-  animation: fadeIn 0.3s ease-out;
+  animation: fadeInUp 0.4s ease-out;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.poll-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  border-color: var(--color-primary-light);
+}
+
+.poll-card:active {
+  transform: translateY(-2px);
 }
 
 .poll-card-header {
@@ -292,6 +441,13 @@
   padding: 0.2rem 0.6rem;
   border-radius: 9999px;
   white-space: nowrap;
+  transition: transform 0.2s ease, background 0.2s ease;
+  cursor: pointer;
+}
+
+.poll-tag:hover {
+  transform: scale(1.05);
+  background: rgba(99, 102, 241, 0.25);
 }
 
 .poll-responses {
@@ -326,16 +482,18 @@
   font-size: 0.95rem;
   text-align: left;
   overflow: hidden;
-  transition: all 0.2s;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .poll-option:hover:not(:disabled):not(.voted) {
   border-color: var(--color-primary);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
 }
 
 .poll-option:active:not(:disabled):not(.voted) {
-  transform: scale(0.98);
+  transform: scale(0.97);
+  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.1);
 }
 
 .poll-option.voted {
@@ -345,10 +503,11 @@
 .poll-option.selected {
   border-color: var(--color-primary);
   background: var(--color-primary-light);
+  animation: celebrate 0.4s ease-out;
 }
 
 .poll-option.just-voted {
-  animation: celebrate 0.5s ease-out;
+  animation: celebrate 0.5s ease-out, glow 1s ease-out;
 }
 
 .option-text {
@@ -368,9 +527,9 @@
   left: 0;
   top: 0;
   height: 100%;
-  background: var(--color-primary-light);
+  background: linear-gradient(90deg, var(--color-primary-light), rgba(99, 102, 241, 0.2));
   border-radius: 8px;
-  transition: width 0.6s ease;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 0;
 }
 
@@ -380,6 +539,7 @@
   font-weight: 600;
   font-size: 0.9rem;
   color: var(--color-primary);
+  animation: fadeIn 0.3s ease-out 0.3s both;
 }
 
 .my-vote-badge {
@@ -480,13 +640,15 @@
   box-sizing: border-box;
   background: var(--color-bg-card);
   color: var(--color-text);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .form-group input:focus,
 .form-group select:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+  transform: translateY(-1px);
 }
 
 .char-count {
@@ -614,11 +776,20 @@
   font-weight: 600;
   cursor: pointer;
   margin-top: 0.5rem;
-  transition: background 0.2s;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
 }
 
 .submit-btn:hover:not(:disabled) {
   background: var(--color-primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
+}
+
+.submit-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
 }
 
 .submit-btn:disabled {
@@ -657,7 +828,13 @@
   cursor: pointer;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.profile-tab:hover {
+  color: var(--color-primary);
+  background: rgba(99, 102, 241, 0.05);
 }
 
 .profile-tab.active {
@@ -802,6 +979,7 @@
    ============================================ */
 .xp-panel {
   padding: 1rem 0;
+  animation: fadeInUp 0.4s ease-out;
 }
 
 .xp-hero {
@@ -813,6 +991,12 @@
   border-radius: 16px;
   margin-bottom: 1.5rem;
   color: white;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.xp-hero:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
 }
 
 .xp-level-badge {
@@ -874,9 +1058,11 @@
 
 .xp-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  background: linear-gradient(90deg, #6366f1, #8b5cf6, #6366f1);
+  background-size: 200% 100%;
   border-radius: 9999px;
-  transition: width 0.3s ease;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: shimmer 2s infinite linear;
 }
 
 .xp-progress-hint {
