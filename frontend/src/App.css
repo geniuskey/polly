@@ -769,6 +769,175 @@
 }
 
 /* ============================================
+   XP Panel
+   ============================================ */
+.xp-panel {
+  padding: 1rem 0;
+}
+
+.xp-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border-radius: 16px;
+  margin-bottom: 1.5rem;
+  color: white;
+}
+
+.xp-level-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.level-number {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.level-title {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  margin-top: 0.25rem;
+}
+
+.xp-total {
+  text-align: right;
+}
+
+.xp-value {
+  display: block;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.xp-label {
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.xp-progress-section {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.xp-progress-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.75rem;
+}
+
+.xp-progress-bar {
+  height: 10px;
+  background: var(--color-bg-secondary);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.xp-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+.xp-progress-hint {
+  margin: 0.75rem 0 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.xp-rewards-info {
+  background: var(--color-bg-secondary);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.xp-rewards-info h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.xp-rewards-info ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.xp-rewards-info li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  font-size: 0.85rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.xp-rewards-info li:last-child {
+  border-bottom: none;
+}
+
+.reward-action {
+  color: var(--color-text-secondary);
+}
+
+.reward-xp {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.xp-history {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.xp-history h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.xp-history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.xp-history-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.6rem 0;
+  font-size: 0.85rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.xp-history-item:last-child {
+  border-bottom: none;
+}
+
+.history-reason {
+  color: var(--color-text-secondary);
+}
+
+.history-xp {
+  color: #10b981;
+  font-weight: 600;
+}
+
+/* ============================================
    Poll Detail
    ============================================ */
 .poll-detail {

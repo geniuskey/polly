@@ -3,6 +3,7 @@ import type { Env, Variables, PollRow, CreatePollBody, VoteBody, UserProfileRow 
 import { requireAuth, optionalAuth } from '../middleware/auth';
 import { incrementVoteCount, getVoteCounts, initCounts, formatResults } from '../utils/kv';
 import { error, success } from '../utils/response';
+import { addVoteXp, addPollCreationXp } from '../utils/xp';
 
 const polls = new Hono<{ Bindings: Env; Variables: Variables }>();
 
@@ -255,7 +256,13 @@ polls.post('/', requireAuth, async (c) => {
     JSON.stringify(initCounts(options.length)),
   );
 
-  return success(c, { id: inserted.id }, 201);
+  // Award XP for creating poll
+  let xpResult = null;
+  if (userId) {
+    xpResult = await addPollCreationXp(c.env.survey_db, userId);
+  }
+
+  return success(c, { id: inserted.id, xp: xpResult }, 201);
 });
 
 // POST /api/polls/:id/vote - 투표
@@ -337,7 +344,13 @@ polls.post('/:id/vote', optionalAuth, async (c) => {
     { gender, ageGroup },
   );
 
-  return success(c, formatResults(counts));
+  // Award XP for voting (logged-in users only)
+  let xpResult = null;
+  if (userId) {
+    xpResult = await addVoteXp(c.env.survey_db, userId);
+  }
+
+  return success(c, { ...formatResults(counts), xp: xpResult });
 });
 
 export default polls;

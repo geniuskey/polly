@@ -22,7 +22,47 @@ export interface Variables {
 export interface UserRow {
   id: string;
   clerk_id: string;
+  xp: number;
+  level: number;
+  last_daily_bonus: string | null;
   created_at: string;
+}
+
+// XP System
+export interface XpHistoryRow {
+  id: number;
+  user_id: string;
+  amount: number;
+  reason: string;
+  created_at: string;
+}
+
+export const XP_REWARDS = {
+  VOTE: 10,
+  CREATE_POLL: 30,
+  COMMENT: 5,
+  DAILY_BONUS: 10,
+} as const;
+
+// Level formula: XP needed for level N = N^2 * 50
+export function getXpForLevel(level: number): number {
+  return level * level * 50;
+}
+
+export function getLevelFromXp(xp: number): number {
+  return Math.floor(Math.sqrt(xp / 50)) || 1;
+}
+
+export function getLevelTitle(level: number): string {
+  if (level >= 30) return '전설의 투표러';
+  if (level >= 20) return '여론 리더';
+  if (level >= 15) return '설문 마스터';
+  if (level >= 10) return '설문 마니아';
+  if (level >= 7) return '열정 투표러';
+  if (level >= 5) return '활발한 참여자';
+  if (level >= 3) return '관심있는 시민';
+  if (level >= 2) return '입문자';
+  return '새싹';
 }
 
 export interface UserProfileRow {

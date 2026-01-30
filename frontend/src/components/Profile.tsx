@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useProfile, useUpdateProfile, useMyPolls, useMyVotes } from '../hooks/useProfile';
-import { apiClient, type SimilarityStats } from '../lib/api';
+import { apiClient, type SimilarityStats, type XpStats } from '../lib/api';
 import type { UpdateProfileRequest, Poll } from '../types';
 
-type TabType = 'settings' | 'myPolls' | 'myVotes' | 'similarity';
+type TabType = 'xp' | 'settings' | 'myPolls' | 'myVotes' | 'similarity';
 
 const ProfileSettings = () => {
   const { data: profileData, isLoading } = useProfile();
@@ -225,6 +225,85 @@ const MyVotesList = () => {
   );
 };
 
+const XpPanel = () => {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['myXp'],
+    queryFn: () => apiClient.getMyXp(),
+  });
+
+  if (isLoading) return <div className="loading">로딩 중...</div>;
+  if (isError) return <div className="error-state"><p>불러오기 실패</p></div>;
+
+  const stats = data?.data as XpStats;
+  const xpInCurrentLevel = stats.xp - stats.xpForCurrentLevel;
+  const xpNeededForNext = stats.xpForNextLevel - stats.xpForCurrentLevel;
+
+  const getReasonLabel = (reason: string) => {
+    switch (reason) {
+      case 'vote': return '투표';
+      case 'vote_with_daily_bonus': return '투표 + 일일 보너스';
+      case 'create_poll': return '설문 생성';
+      case 'comment': return '댓글 작성';
+      default: return reason;
+    }
+  };
+
+  return (
+    <div className="xp-panel">
+      <div className="xp-hero">
+        <div className="xp-level-badge">
+          <span className="level-number">Lv.{stats.level}</span>
+          <span className="level-title">{stats.title}</span>
+        </div>
+        <div className="xp-total">
+          <span className="xp-value">{stats.xp.toLocaleString()}</span>
+          <span className="xp-label">XP</span>
+        </div>
+      </div>
+
+      <div className="xp-progress-section">
+        <div className="xp-progress-header">
+          <span>다음 레벨까지</span>
+          <span>{xpInCurrentLevel} / {xpNeededForNext} XP</span>
+        </div>
+        <div className="xp-progress-bar">
+          <div
+            className="xp-progress-fill"
+            style={{ width: `${stats.progress}%` }}
+          />
+        </div>
+        <p className="xp-progress-hint">
+          {xpNeededForNext - xpInCurrentLevel} XP 더 모으면 레벨 업!
+        </p>
+      </div>
+
+      <div className="xp-rewards-info">
+        <h4>XP 획득 방법</h4>
+        <ul>
+          <li><span className="reward-action">투표하기</span> <span className="reward-xp">+10 XP</span></li>
+          <li><span className="reward-action">설문 만들기</span> <span className="reward-xp">+30 XP</span></li>
+          <li><span className="reward-action">댓글 작성</span> <span className="reward-xp">+5 XP</span></li>
+          <li><span className="reward-action">매일 첫 투표</span> <span className="reward-xp">+10 XP 보너스</span></li>
+        </ul>
+      </div>
+
+      {stats.history.length > 0 && (
+        <div className="xp-history">
+          <h4>최근 활동</h4>
+          <ul className="xp-history-list">
+            {stats.history.map((entry) => (
+              <li key={entry.id} className="xp-history-item">
+                <span className="history-reason">{getReasonLabel(entry.reason)}</span>
+                <span className="history-xp">+{entry.amount} XP</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const SimilarityPanel = () => {
   const { data, isLoading, isError } = useQuery({
     queryKey: ['similarity'],
@@ -286,17 +365,23 @@ const SimilarityPanel = () => {
 };
 
 const Profile = () => {
-  const [activeTab, setActiveTab] = useState<TabType>('similarity');
+  const [activeTab, setActiveTab] = useState<TabType>('xp');
 
   return (
     <div className="profile">
       <h2>내 정보</h2>
       <div className="profile-tabs">
         <button
+          className={`profile-tab ${activeTab === 'xp' ? 'active' : ''}`}
+          onClick={() => setActiveTab('xp')}
+        >
+          레벨/XP
+        </button>
+        <button
           className={`profile-tab ${activeTab === 'similarity' ? 'active' : ''}`}
           onClick={() => setActiveTab('similarity')}
         >
-          나와 비슷한 사람
+          비슷한 사람
         </button>
         <button
           className={`profile-tab ${activeTab === 'myPolls' ? 'active' : ''}`}
@@ -308,7 +393,7 @@ const Profile = () => {
           className={`profile-tab ${activeTab === 'myVotes' ? 'active' : ''}`}
           onClick={() => setActiveTab('myVotes')}
         >
-          투표한 설문
+          투표 기록
         </button>
         <button
           className={`profile-tab ${activeTab === 'settings' ? 'active' : ''}`}
@@ -318,6 +403,7 @@ const Profile = () => {
         </button>
       </div>
 
+      {activeTab === 'xp' && <XpPanel />}
       {activeTab === 'similarity' && <SimilarityPanel />}
       {activeTab === 'settings' && <ProfileSettings />}
       {activeTab === 'myPolls' && <MyPollsList />}

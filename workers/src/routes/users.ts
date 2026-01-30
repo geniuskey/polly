@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
-import type { Env, Variables, UserProfileRow, UpdateProfileBody, PollRow } from '../types';
+import type { Env, Variables, UserProfileRow, UpdateProfileBody, PollRow, XpHistoryRow } from '../types';
 import { requireAuth } from '../middleware/auth';
 import { error, success } from '../utils/response';
+import { getUserXpStats } from '../utils/xp';
+import { getLevelTitle } from '../types';
 
 const users = new Hono<{ Bindings: Env; Variables: Variables }>();
 
@@ -39,6 +41,32 @@ users.get('/me', async (c) => {
     shareGender: !!profile.share_gender,
     shareAgeGroup: !!profile.share_age_group,
     shareRegion: !!profile.share_region,
+  });
+});
+
+// GET /api/users/me/xp - 내 경험치/레벨 정보
+users.get('/me/xp', async (c) => {
+  const userId = c.get('userId')!;
+
+  const stats = await getUserXpStats(c.env.survey_db, userId);
+  const title = getLevelTitle(stats.level);
+
+  // Get recent XP history
+  const historyResult = await c.env.survey_db.prepare(
+    'SELECT * FROM xp_history WHERE user_id = ? ORDER BY created_at DESC LIMIT 10'
+  ).bind(userId).all<XpHistoryRow>();
+
+  const history = (historyResult.results || []).map(row => ({
+    id: row.id,
+    amount: row.amount,
+    reason: row.reason,
+    createdAt: row.created_at,
+  }));
+
+  return success(c, {
+    ...stats,
+    title,
+    history,
   });
 });
 

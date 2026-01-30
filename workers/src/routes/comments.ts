@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type { Env, Variables, CommentRow, CreateCommentBody } from '../types';
 import { requireAuth } from '../middleware/auth';
 import { error, success } from '../utils/response';
+import { addCommentXp } from '../utils/xp';
 
 const comments = new Hono<{ Bindings: Env; Variables: Variables }>();
 
@@ -84,6 +85,9 @@ comments.post('/', requireAuth, async (c) => {
     return error(c, 'INTERNAL_ERROR', '댓글 등록에 실패했습니다', 500);
   }
 
+  // Award XP for comment
+  const xpResult = await addCommentXp(c.env.survey_db, userId);
+
   return success(c, {
     id: inserted.id,
     pollId: inserted.poll_id,
@@ -91,6 +95,7 @@ comments.post('/', requireAuth, async (c) => {
     clerkId: inserted.clerk_id,
     content: inserted.content,
     createdAt: inserted.created_at,
+    xp: xpResult,
   }, 201);
 });
 

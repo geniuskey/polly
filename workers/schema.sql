@@ -7,10 +7,26 @@
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
   clerk_id TEXT UNIQUE NOT NULL,
+  xp INTEGER DEFAULT 0,
+  level INTEGER DEFAULT 1,
+  last_daily_bonus DATE,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_clerk_id ON users(clerk_id);
+
+-- ============================================
+-- XP History
+-- ============================================
+CREATE TABLE IF NOT EXISTS xp_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  amount INTEGER NOT NULL,
+  reason TEXT NOT NULL,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_xp_history_user ON xp_history(user_id);
 
 -- ============================================
 -- User Profiles
@@ -105,6 +121,31 @@ CREATE TABLE IF NOT EXISTS comments (
 
 CREATE INDEX IF NOT EXISTS idx_comments_poll_id ON comments(poll_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
+
+-- ============================================
+-- Tags (Hashtag system)
+-- ============================================
+CREATE TABLE IF NOT EXISTS tags (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT UNIQUE NOT NULL,
+  poll_count INTEGER DEFAULT 0 NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name);
+CREATE INDEX IF NOT EXISTS idx_tags_poll_count ON tags(poll_count DESC);
+
+-- ============================================
+-- Poll-Tag junction table
+-- ============================================
+CREATE TABLE IF NOT EXISTS poll_tags (
+  poll_id TEXT NOT NULL REFERENCES polls(id) ON DELETE CASCADE,
+  tag_id INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+  PRIMARY KEY (poll_id, tag_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_poll_tags_poll_id ON poll_tags(poll_id);
+CREATE INDEX IF NOT EXISTS idx_poll_tags_tag_id ON poll_tags(tag_id);
 
 -- ============================================
 -- Views (for convenience)

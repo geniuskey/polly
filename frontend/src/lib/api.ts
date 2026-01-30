@@ -204,6 +204,11 @@ class ApiClient {
     return this.request('/explore/insights');
   }
 
+  // XP/Level
+  async getMyXp(): Promise<ApiResponse<XpStats>> {
+    return this.request('/users/me/xp');
+  }
+
   // Similarity
   async getMySimilarity(): Promise<ApiResponse<SimilarityStats>> {
     return this.request('/users/me/similarity');
@@ -327,6 +332,24 @@ export interface InsightsData {
     category: string;
     responses: number;
   }>;
+}
+
+// XP types
+export interface XpHistoryEntry {
+  id: number;
+  amount: number;
+  reason: string;
+  createdAt: string;
+}
+
+export interface XpStats {
+  xp: number;
+  level: number;
+  xpForCurrentLevel: number;
+  xpForNextLevel: number;
+  progress: number;
+  title: string;
+  history: XpHistoryEntry[];
 }
 
 // Similarity types
