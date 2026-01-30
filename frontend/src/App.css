@@ -1153,6 +1153,237 @@
 }
 
 /* ============================================
+   Personality Panel
+   ============================================ */
+.personality-panel {
+  padding: 1rem 0;
+  animation: fadeInUp 0.4s ease-out;
+}
+
+.personality-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.personality-empty .empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.personality-empty p {
+  color: var(--color-text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+.personality-type-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border-radius: 16px;
+  margin-bottom: 1.5rem;
+  color: white;
+  animation: scaleIn 0.4s ease-out;
+}
+
+.type-emoji {
+  font-size: 3rem;
+  animation: bounce 1s ease-out;
+}
+
+.type-info {
+  flex: 1;
+}
+
+.type-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem 0;
+}
+
+.type-description {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  margin: 0;
+}
+
+.personality-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.personality-summary .summary-stat {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  transition: transform 0.2s ease;
+}
+
+.personality-summary .summary-stat:hover {
+  transform: translateY(-2px);
+}
+
+.personality-summary .summary-stat.highlight {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+}
+
+.summary-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1.2;
+}
+
+.summary-label {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.personality-dimensions {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.personality-dimensions h4 {
+  margin: 0 0 1rem 0;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.dimension-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.dimension-row:last-child {
+  margin-bottom: 0;
+}
+
+.dimension-low-label,
+.dimension-high-label {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  width: 50px;
+  flex-shrink: 0;
+}
+
+.dimension-low-label {
+  text-align: right;
+}
+
+.dimension-high-label {
+  text-align: left;
+}
+
+.dimension-bar-container {
+  flex: 1;
+  position: relative;
+}
+
+.dimension-bar {
+  height: 8px;
+  background: var(--color-bg-secondary);
+  border-radius: 9999px;
+  position: relative;
+  overflow: visible;
+}
+
+.dimension-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #a5b4fc, #6366f1);
+  border-radius: 9999px;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dimension-marker {
+  position: absolute;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  background: var(--color-primary);
+  border: 3px solid white;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+  transition: left 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.personality-recent {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.personality-recent h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.recent-summary {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  margin: 0 0 1rem 0;
+}
+
+.recent-polls-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.recent-poll-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.85rem;
+}
+
+.recent-poll-item:last-child {
+  border-bottom: none;
+}
+
+.recent-poll-item .poll-indicator {
+  font-size: 1rem;
+}
+
+.recent-poll-item .poll-question-link {
+  color: var(--color-text);
+  text-decoration: none;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-poll-item .poll-question-link:hover {
+  color: var(--color-primary);
+}
+
+.recent-poll-item.with-majority {
+  opacity: 0.8;
+}
+
+.recent-poll-item.unique .poll-indicator {
+  animation: wiggle 0.5s ease-out;
+}
+
+/* ============================================
    Poll Detail
    ============================================ */
 .poll-detail {

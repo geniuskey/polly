@@ -209,6 +209,11 @@ class ApiClient {
     return this.request('/users/me/xp');
   }
 
+  // Personality Analysis
+  async getMyPersonality(): Promise<ApiResponse<PersonalityAnalysis>> {
+    return this.request('/users/me/personality');
+  }
+
   // Similarity
   async getMySimilarity(): Promise<ApiResponse<SimilarityStats>> {
     return this.request('/users/me/similarity');
@@ -350,6 +355,43 @@ export interface XpStats {
   progress: number;
   title: string;
   history: XpHistoryEntry[];
+}
+
+// Personality Analysis types
+export interface PersonalityType {
+  code: string;
+  name: string;
+  emoji: string;
+  description: string;
+}
+
+export interface PersonalityDimensions {
+  conformity: number;    // 다수파 ↔ 독립파
+  decisive: number;      // 확신적 ↔ 신중한
+  earlyBird: number;     // 선구자 ↔ 관망자
+  engagement: number;    // 적극적 ↔ 여유로운
+  diversity: number;     // 다양한 ↔ 집중적
+}
+
+export interface RecentPollMatch {
+  id: string;
+  question: string;
+  withMajority: boolean;
+  totalVotes: number;
+}
+
+export interface PersonalityAnalysis {
+  hasData: boolean;
+  totalVotes?: number;
+  message?: string;
+  type?: PersonalityType;
+  dimensions?: PersonalityDimensions;
+  recentPolls?: RecentPollMatch[];
+  summary?: {
+    withMajority: number;
+    uniqueness: number;
+    recentMatch: string;
+  };
 }
 
 // Similarity types

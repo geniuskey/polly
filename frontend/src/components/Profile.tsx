@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useProfile, useUpdateProfile, useMyPolls, useMyVotes } from '../hooks/useProfile';
-import { apiClient, type SimilarityStats, type XpStats } from '../lib/api';
+import { apiClient, type SimilarityStats, type XpStats, type PersonalityAnalysis } from '../lib/api';
 import type { UpdateProfileRequest, Poll } from '../types';
 
-type TabType = 'xp' | 'settings' | 'myPolls' | 'myVotes' | 'similarity';
+type TabType = 'personality' | 'xp' | 'settings' | 'myPolls' | 'myVotes' | 'similarity';
 
 const ProfileSettings = () => {
   const { data: profileData, isLoading } = useProfile();
@@ -225,6 +225,111 @@ const MyVotesList = () => {
   );
 };
 
+const PersonalityPanel = () => {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['myPersonality'],
+    queryFn: () => apiClient.getMyPersonality(),
+  });
+
+  if (isLoading) return <div className="loading">분석 중...</div>;
+  if (isError) return <div className="error-state"><p>불러오기 실패</p></div>;
+
+  const analysis = data?.data as PersonalityAnalysis;
+
+  if (!analysis.hasData) {
+    return (
+      <div className="personality-panel">
+        <div className="personality-empty">
+          <div className="empty-icon">🎯</div>
+          <p>{analysis.message}</p>
+          <Link to="/" className="go-vote-btn">투표하러 가기</Link>
+        </div>
+      </div>
+    );
+  }
+
+  const dimensions = analysis.dimensions!;
+  const type = analysis.type!;
+
+  const dimensionLabels = [
+    { key: 'conformity', label: '다수파', lowLabel: '독립파', value: dimensions.conformity },
+    { key: 'decisive', label: '확신형', lowLabel: '신중형', value: dimensions.decisive },
+    { key: 'earlyBird', label: '선구자', lowLabel: '관망자', value: dimensions.earlyBird },
+    { key: 'engagement', label: '열정러', lowLabel: '여유러', value: dimensions.engagement },
+    { key: 'diversity', label: '탐험가', lowLabel: '전문가', value: dimensions.diversity },
+  ];
+
+  return (
+    <div className="personality-panel">
+      {/* Type Card */}
+      <div className="personality-type-card">
+        <div className="type-emoji">{type.emoji}</div>
+        <div className="type-info">
+          <h3 className="type-name">{type.name}</h3>
+          <p className="type-description">{type.description}</p>
+        </div>
+      </div>
+
+      {/* Summary Stats */}
+      <div className="personality-summary">
+        <div className="summary-stat">
+          <span className="summary-value">{analysis.summary!.withMajority}%</span>
+          <span className="summary-label">다수와 일치</span>
+        </div>
+        <div className="summary-stat highlight">
+          <span className="summary-value">{analysis.summary!.uniqueness}%</span>
+          <span className="summary-label">독특함 지수</span>
+        </div>
+        <div className="summary-stat">
+          <span className="summary-value">{analysis.totalVotes}</span>
+          <span className="summary-label">총 투표</span>
+        </div>
+      </div>
+
+      {/* Dimension Bars */}
+      <div className="personality-dimensions">
+        <h4>성향 분석</h4>
+        {dimensionLabels.map((dim) => (
+          <div key={dim.key} className="dimension-row">
+            <span className="dimension-low-label">{dim.lowLabel}</span>
+            <div className="dimension-bar-container">
+              <div className="dimension-bar">
+                <div
+                  className="dimension-fill"
+                  style={{ width: `${dim.value}%` }}
+                />
+                <div
+                  className="dimension-marker"
+                  style={{ left: `${dim.value}%` }}
+                />
+              </div>
+            </div>
+            <span className="dimension-high-label">{dim.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Recent Polls */}
+      {analysis.recentPolls && analysis.recentPolls.length > 0 && (
+        <div className="personality-recent">
+          <h4>최근 투표 기록</h4>
+          <p className="recent-summary">{analysis.summary!.recentMatch}</p>
+          <ul className="recent-polls-list">
+            {analysis.recentPolls.map((poll) => (
+              <li key={poll.id} className={`recent-poll-item ${poll.withMajority ? 'with-majority' : 'unique'}`}>
+                <span className="poll-indicator">{poll.withMajority ? '👥' : '🦅'}</span>
+                <Link to={`/poll/${poll.id}`} className="poll-question-link">
+                  {poll.question}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const XpPanel = () => {
   const { data, isLoading, isError } = useQuery({
     queryKey: ['myXp'],
@@ -365,17 +470,23 @@ const SimilarityPanel = () => {
 };
 
 const Profile = () => {
-  const [activeTab, setActiveTab] = useState<TabType>('xp');
+  const [activeTab, setActiveTab] = useState<TabType>('personality');
 
   return (
     <div className="profile">
       <h2>내 정보</h2>
       <div className="profile-tabs">
         <button
+          className={`profile-tab ${activeTab === 'personality' ? 'active' : ''}`}
+          onClick={() => setActiveTab('personality')}
+        >
+          내 성향
+        </button>
+        <button
           className={`profile-tab ${activeTab === 'xp' ? 'active' : ''}`}
           onClick={() => setActiveTab('xp')}
         >
-          레벨/XP
+          레벨
         </button>
         <button
           className={`profile-tab ${activeTab === 'similarity' ? 'active' : ''}`}
@@ -403,6 +514,7 @@ const Profile = () => {
         </button>
       </div>
 
+      {activeTab === 'personality' && <PersonalityPanel />}
       {activeTab === 'xp' && <XpPanel />}
       {activeTab === 'similarity' && <SimilarityPanel />}
       {activeTab === 'settings' && <ProfileSettings />}
