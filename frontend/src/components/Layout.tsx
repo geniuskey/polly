@@ -6,6 +6,7 @@ import {
   UserButton,
 } from '@clerk/clerk-react';
 import { useTheme } from '../hooks/useTheme';
+import { useAdmin } from '../hooks/useAdmin';
 
 const ThemeIcon = ({ isDark }: { isDark: boolean }) => {
   if (isDark) {
@@ -16,6 +17,7 @@ const ThemeIcon = ({ isDark }: { isDark: boolean }) => {
 
 const Layout = () => {
   const { toggleTheme, isDark } = useTheme();
+  const { isAdmin } = useAdmin();
 
   return (
     <div className="app-layout">
@@ -28,6 +30,7 @@ const Layout = () => {
           <Link to="/create">설문 만들기</Link>
           <SignedIn>
             <Link to="/profile">프로필</Link>
+            {isAdmin && <Link to="/admin" className="admin-link">관리자</Link>}
             <UserButton />
           </SignedIn>
           <SignedOut>

@@ -5,6 +5,7 @@ import PollFeed from './components/PollFeed';
 import CreatePoll from './components/CreatePoll';
 import Profile from './components/Profile';
 import PollDetailPage from './pages/PollDetailPage';
+import AdminPage from './pages/AdminPage';
 import { initKakao } from './lib/kakao';
 import './App.css';
 
@@ -21,6 +22,7 @@ const App = () => {
           <Route path="/poll/:id" element={<PollDetailPage />} />
           <Route path="/create" element={<CreatePoll />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/admin" element={<AdminPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

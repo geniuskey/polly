@@ -5,6 +5,7 @@ import polls from './routes/polls';
 import users from './routes/users';
 import comments from './routes/comments';
 import tags from './routes/tags';
+import admin from './routes/admin';
 
 const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
@@ -21,6 +22,7 @@ app.route('/api/polls', polls);
 app.route('/api/polls/:pollId/comments', comments);
 app.route('/api/users', users);
 app.route('/api/tags', tags);
+app.route('/api/admin', admin);
 
 // 404 handler
 app.notFound((c) => {

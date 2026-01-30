@@ -174,6 +174,109 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Admin
+  async getAdminStats(): Promise<ApiResponse<AdminStats>> {
+    return this.request('/admin/stats');
+  }
+
+  async getAdminPolls(params?: {
+    status?: 'active' | 'inactive';
+    cursor?: string;
+    limit?: number;
+  }): Promise<AdminPollListResponse> {
+    const searchParams = new URLSearchParams();
+    if (params?.status) searchParams.set('status', params.status);
+    if (params?.cursor) searchParams.set('cursor', params.cursor);
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    const query = searchParams.toString();
+    return this.request(`/admin/polls${query ? `?${query}` : ''}`);
+  }
+
+  async updateAdminPoll(
+    id: string,
+    data: { isActive?: boolean },
+  ): Promise<ApiResponse<{ id: string; isActive: boolean }>> {
+    return this.request(`/admin/polls/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteAdminPoll(id: string): Promise<ApiResponse<{ deleted: boolean }>> {
+    return this.request(`/admin/polls/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getAdminComments(params?: {
+    pollId?: string;
+    cursor?: string;
+    limit?: number;
+  }): Promise<AdminCommentListResponse> {
+    const searchParams = new URLSearchParams();
+    if (params?.pollId) searchParams.set('pollId', params.pollId);
+    if (params?.cursor) searchParams.set('cursor', params.cursor);
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    const query = searchParams.toString();
+    return this.request(`/admin/comments${query ? `?${query}` : ''}`);
+  }
+
+  async deleteAdminComment(id: string): Promise<ApiResponse<{ deleted: boolean }>> {
+    return this.request(`/admin/comments/${id}`, {
+      method: 'DELETE',
+    });
+  }
+}
+
+// Admin types
+export interface AdminStats {
+  totals: {
+    polls: number;
+    responses: number;
+    users: number;
+    comments: number;
+  };
+  last24h: {
+    polls: number;
+    responses: number;
+  };
+  topPolls: Array<{
+    id: string;
+    question: string;
+    response_count: number;
+  }>;
+}
+
+export interface AdminPoll {
+  id: string;
+  creatorId: string | null;
+  question: string;
+  options: string[];
+  category: string | null;
+  expiresAt: string | null;
+  isActive: boolean;
+  createdAt: string;
+  responseCount: number;
+}
+
+export interface AdminPollListResponse {
+  polls: AdminPoll[];
+  nextCursor: string | null;
+}
+
+export interface AdminComment {
+  id: string;
+  pollId: string;
+  pollQuestion: string;
+  userId: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface AdminCommentListResponse {
+  comments: AdminComment[];
+  nextCursor: string | null;
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);

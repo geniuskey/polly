@@ -6,6 +6,7 @@ export interface Env {
   CLERK_SECRET_KEY: string;
   ENVIRONMENT: string;
   ALLOWED_ORIGINS: string;
+  ADMIN_EMAILS?: string; // Comma-separated admin emails
 }
 
 export type AppContext = Context<{ Bindings: Env; Variables: Variables }>;
@@ -13,6 +14,8 @@ export type AppContext = Context<{ Bindings: Env; Variables: Variables }>;
 export interface Variables {
   clerkId?: string;
   userId?: string;
+  userEmail?: string;
+  isAdmin?: boolean;
 }
 
 // Database row types
