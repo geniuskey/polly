@@ -26,7 +26,8 @@
   text-decoration: none;
 }
 
-.nav {
+/* Desktop Navigation */
+.desktop-nav {
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -58,6 +59,25 @@
   background: var(--color-primary-hover);
 }
 
+/* Mobile Header Actions - hidden on desktop */
+.mobile-header-actions {
+  display: none;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.mobile-insights-link {
+  font-size: 1.2rem;
+  text-decoration: none;
+}
+
+.mobile-admin {
+  font-size: 0.8rem !important;
+  padding: 0.3rem 0.6rem;
+  background: var(--color-primary-light);
+  border-radius: 6px;
+}
+
 /* Theme Toggle */
 .theme-toggle {
   background: none;
@@ -68,6 +88,11 @@
   color: var(--color-text-muted);
   border-radius: 8px;
   transition: background 0.2s;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .theme-toggle:hover {
@@ -80,6 +105,75 @@
   margin: 0 auto;
   padding: 1.5rem 1rem;
   width: 100%;
+}
+
+/* Mobile Bottom Navigation - hidden on desktop */
+.mobile-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--color-bg-card);
+  border-top: 1px solid var(--color-border);
+  padding: 0.5rem 0;
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  z-index: 100;
+}
+
+.mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 0.5rem;
+  text-decoration: none;
+  color: var(--color-text-secondary);
+  transition: color 0.2s;
+  min-height: 56px;
+}
+
+.mobile-nav-item.active {
+  color: var(--color-primary);
+}
+
+.mobile-nav-icon {
+  font-size: 1.4rem;
+  margin-bottom: 0.2rem;
+}
+
+.mobile-nav-label {
+  font-size: 0.65rem;
+  font-weight: 500;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .desktop-nav {
+    display: none;
+  }
+
+  .mobile-header-actions {
+    display: flex;
+  }
+
+  .mobile-nav {
+    display: flex;
+  }
+
+  .app-main {
+    padding: 1rem 0.75rem;
+    padding-bottom: 80px; /* Space for bottom nav */
+  }
+
+  .app-header {
+    padding: 0.6rem 1rem;
+  }
+
+  .logo {
+    font-size: 1.25rem;
+  }
 }
 
 /* ============================================
@@ -2303,25 +2397,233 @@
   color: var(--color-primary);
 }
 
-/* Responsive for new pages */
+/* ============================================
+   Mobile Optimization (max-width: 480px)
+   ============================================ */
 @media (max-width: 480px) {
+  /* Touch-friendly buttons - minimum 44px touch target */
+  .poll-option {
+    min-height: 52px;
+    padding: 0.85rem 1rem;
+  }
+
+  .category-tab {
+    min-height: 44px;
+    padding: 0.6rem 1rem;
+  }
+
+  .submit-btn,
+  .load-more,
+  .retry-btn {
+    min-height: 48px;
+    font-size: 1rem;
+  }
+
+  /* Ranking page */
   .ranking-types {
     flex-wrap: wrap;
   }
 
   .ranking-type-btn {
     flex: 1 1 45%;
+    min-height: 52px;
   }
 
+  .period-btn {
+    min-height: 44px;
+  }
+
+  .ranking-item {
+    padding: 0.85rem;
+  }
+
+  /* Insights page */
   .insights-totals {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
+
+  .insight-stat-card {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .insight-stat-card .stat-value {
+    font-size: 1.25rem;
   }
 
   .hour-label {
     display: none;
   }
 
-  .hour-bar-container:nth-child(odd) .hour-label {
+  .hour-bar-container:nth-child(even) .hour-label {
     display: block;
+  }
+
+  /* Explore page */
+  .search-form {
+    flex-direction: column;
+  }
+
+  .search-btn {
+    min-height: 48px;
+  }
+
+  .tag-cloud-item {
+    min-height: 40px;
+  }
+
+  /* Profile tabs */
+  .profile-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .profile-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .profile-tab {
+    white-space: nowrap;
+    min-height: 44px;
+  }
+
+  /* Similarity panel */
+  .similarity-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Admin page */
+  .admin-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+  }
+
+  .admin-tab {
+    white-space: nowrap;
+    min-height: 44px;
+  }
+
+  /* Feed controls */
+  .feed-controls {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .feed-actions {
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .sort-options {
+    gap: 0.25rem;
+  }
+
+  .sort-btn {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+    min-height: 36px;
+  }
+
+  .hide-voted-btn {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.6rem;
+  }
+
+  /* Cards */
+  .poll-card {
+    border-radius: 10px;
+    padding: 1rem;
+  }
+
+  .poll-question {
+    font-size: 1rem;
+    line-height: 1.4;
+  }
+
+  /* Comments */
+  .comment-input-wrapper {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .comment-input-wrapper button {
+    min-height: 44px;
+    width: 100%;
+  }
+
+  /* Share buttons */
+  .share-buttons {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .share-btn {
+    flex: 1;
+    min-width: 80px;
+    min-height: 44px;
+  }
+
+  /* Forms */
+  input, select, textarea {
+    font-size: 16px !important; /* Prevent zoom on iOS */
+    min-height: 44px;
+  }
+
+  /* Results chart bars */
+  .comparison-charts {
+    gap: 1.5rem;
+  }
+
+  .chart-bars {
+    gap: 0.35rem;
+  }
+
+  /* Empty state */
+  .empty {
+    padding: 2rem 1rem;
+    font-size: 0.95rem;
+  }
+}
+
+/* ============================================
+   Small Mobile (max-width: 360px)
+   ============================================ */
+@media (max-width: 360px) {
+  .logo {
+    font-size: 1.1rem;
+  }
+
+  .mobile-nav-label {
+    font-size: 0.6rem;
+  }
+
+  .mobile-nav-icon {
+    font-size: 1.2rem;
+  }
+
+  .poll-option {
+    font-size: 0.9rem;
+  }
+
+  .insight-stat-card .stat-value {
+    font-size: 1.1rem;
+  }
+
+  .ranking-type-btn {
+    font-size: 0.85rem;
+    padding: 0.6rem;
+  }
+}
+
+/* ============================================
+   Safe Area for notched devices
+   ============================================ */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .app-main {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
   }
 }
