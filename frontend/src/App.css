@@ -271,6 +271,35 @@
   vertical-align: middle;
 }
 
+.similarity-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, var(--color-primary-light), rgba(99, 102, 241, 0.15));
+  border-radius: 10px;
+  font-size: 0.85rem;
+  color: var(--color-primary);
+  font-weight: 500;
+  animation: slideUp 0.4s ease-out;
+}
+
+.similarity-icon {
+  font-size: 1.1rem;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* ============================================
    Expiration Timer
    ============================================ */
@@ -535,6 +564,114 @@
   border-radius: 8px;
   line-height: 1.5;
   margin-bottom: 1rem;
+}
+
+/* ============================================
+   Similarity Panel
+   ============================================ */
+.similarity-panel {
+  padding: 1rem 0;
+}
+
+.similarity-hero {
+  text-align: center;
+  padding: 2rem 1rem;
+  background: linear-gradient(135deg, var(--color-primary-light), rgba(99, 102, 241, 0.2));
+  border-radius: 16px;
+  margin-bottom: 1.5rem;
+}
+
+.similarity-emoji {
+  font-size: 3rem;
+  margin-bottom: 0.75rem;
+}
+
+.similarity-message-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.similarity-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.similarity-stat {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.similarity-stat.highlight {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+}
+
+.similarity-stat .stat-number {
+  display: block;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1.2;
+}
+
+.similarity-stat .stat-label {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.similarity-tip {
+  background: var(--color-bg-secondary);
+  border-radius: 12px;
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.similarity-tip p {
+  margin: 0 0 1rem 0;
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
+}
+
+.go-vote-btn {
+  display: inline-block;
+  background: var(--color-primary);
+  color: white;
+  padding: 0.6rem 1.5rem;
+  border-radius: 9999px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: opacity 0.2s;
+}
+
+.go-vote-btn:hover {
+  opacity: 0.9;
+}
+
+.similarity-explanation {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: var(--color-bg-secondary);
+  border-radius: 10px;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+.similarity-explanation p {
+  margin: 0;
+}
+
+.similarity-explanation strong {
+  color: var(--color-text);
 }
 
 /* ============================================

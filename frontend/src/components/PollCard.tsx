@@ -4,6 +4,7 @@ import type { Poll } from '../types';
 import { useVote, usePollDetail } from '../hooks/usePolls';
 import { generateFingerprint } from '../lib/fingerprint';
 import { saveVote, getVote } from '../lib/voteStorage';
+import { apiClient, type PollSimilarity } from '../lib/api';
 import ExpirationTimer from './ExpirationTimer';
 
 interface PollCardProps {
@@ -43,6 +44,7 @@ const PollCard = ({ poll }: PollCardProps) => {
   const [results, setResults] = useState<
     { count: number; percentage: number }[] | null
   >(null);
+  const [similarity, setSimilarity] = useState<PollSimilarity | null>(null);
 
   const { mutateAsync: vote } = useVote(poll.id);
 
@@ -97,6 +99,19 @@ const PollCard = ({ poll }: PollCardProps) => {
           percentage: opt.percentage,
         }))
       );
+
+      // Check similarity (non-blocking)
+      apiClient.checkSimilarity({
+        fingerprint,
+        pollId: poll.id,
+        optionIndex,
+      }).then((res) => {
+        if (res.data?.message) {
+          setSimilarity(res.data);
+        }
+      }).catch(() => {
+        // Ignore similarity errors
+      });
     } catch (err) {
       const error = err as Error & { code?: string };
       if (error.code === 'DUPLICATE_VOTE') {
@@ -166,6 +181,13 @@ const PollCard = ({ poll }: PollCardProps) => {
           </button>
         ))}
       </div>
+
+      {similarity?.message && (
+        <div className="similarity-message">
+          <span className="similarity-icon">👥</span>
+          {similarity.message}
+        </div>
+      )}
     </div>
   );
 };

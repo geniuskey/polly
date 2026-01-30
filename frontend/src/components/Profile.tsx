@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useProfile, useUpdateProfile, useMyPolls, useMyVotes } from '../hooks/useProfile';
+import { apiClient, type SimilarityStats } from '../lib/api';
 import type { UpdateProfileRequest, Poll } from '../types';
 
-type TabType = 'settings' | 'myPolls' | 'myVotes';
+type TabType = 'settings' | 'myPolls' | 'myVotes' | 'similarity';
 
 const ProfileSettings = () => {
   const { data: profileData, isLoading } = useProfile();
@@ -223,13 +225,79 @@ const MyVotesList = () => {
   );
 };
 
+const SimilarityPanel = () => {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['similarity'],
+    queryFn: () => apiClient.getMySimilarity(),
+  });
+
+  if (isLoading) return <div className="loading">분석 중...</div>;
+  if (isError) return <div className="error-state"><p>불러오기 실패</p></div>;
+
+  const stats = data?.data as SimilarityStats;
+
+  return (
+    <div className="similarity-panel">
+      <div className="similarity-hero">
+        <div className="similarity-emoji">👥</div>
+        <p className="similarity-message-text">{stats.message}</p>
+      </div>
+
+      <div className="similarity-stats">
+        <div className="similarity-stat">
+          <span className="stat-number">{stats.totalVotes}</span>
+          <span className="stat-label">총 투표 수</span>
+        </div>
+        <div className="similarity-stat">
+          <span className="stat-number">{stats.similarUsers}</span>
+          <span className="stat-label">비슷한 사람</span>
+        </div>
+        {stats.topSimilarity > 0 && (
+          <div className="similarity-stat highlight">
+            <span className="stat-number">{stats.topSimilarity}%</span>
+            <span className="stat-label">최고 유사도</span>
+          </div>
+        )}
+        {stats.comparedWith !== undefined && stats.comparedWith > 0 && (
+          <div className="similarity-stat">
+            <span className="stat-number">{stats.comparedWith}</span>
+            <span className="stat-label">비교 대상</span>
+          </div>
+        )}
+      </div>
+
+      {stats.totalVotes < 3 && (
+        <div className="similarity-tip">
+          <p>더 많은 설문에 참여하면 취향이 비슷한 사람을 찾아드려요!</p>
+          <Link to="/" className="go-vote-btn">투표하러 가기</Link>
+        </div>
+      )}
+
+      {stats.similarUsers > 0 && (
+        <div className="similarity-explanation">
+          <p>
+            <strong>비슷한 사람</strong>이란?<br />
+            같은 설문에서 3개 이상 겹치고, 그 중 70% 이상 같은 선택을 한 사람이에요.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Profile = () => {
-  const [activeTab, setActiveTab] = useState<TabType>('myPolls');
+  const [activeTab, setActiveTab] = useState<TabType>('similarity');
 
   return (
     <div className="profile">
       <h2>내 정보</h2>
       <div className="profile-tabs">
+        <button
+          className={`profile-tab ${activeTab === 'similarity' ? 'active' : ''}`}
+          onClick={() => setActiveTab('similarity')}
+        >
+          나와 비슷한 사람
+        </button>
         <button
           className={`profile-tab ${activeTab === 'myPolls' ? 'active' : ''}`}
           onClick={() => setActiveTab('myPolls')}
@@ -246,10 +314,11 @@ const Profile = () => {
           className={`profile-tab ${activeTab === 'settings' ? 'active' : ''}`}
           onClick={() => setActiveTab('settings')}
         >
-          프로필 설정
+          설정
         </button>
       </div>
 
+      {activeTab === 'similarity' && <SimilarityPanel />}
       {activeTab === 'settings' && <ProfileSettings />}
       {activeTab === 'myPolls' && <MyPollsList />}
       {activeTab === 'myVotes' && <MyVotesList />}

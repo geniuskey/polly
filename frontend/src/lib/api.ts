@@ -175,6 +175,22 @@ class ApiClient {
     });
   }
 
+  // Similarity
+  async getMySimilarity(): Promise<ApiResponse<SimilarityStats>> {
+    return this.request('/users/me/similarity');
+  }
+
+  async checkSimilarity(data: {
+    fingerprint: string;
+    pollId: string;
+    optionIndex: number;
+  }): Promise<ApiResponse<PollSimilarity>> {
+    return this.request('/users/similarity/check', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   // Admin
   async getAdminStats(): Promise<ApiResponse<AdminStats>> {
     return this.request('/admin/stats');
@@ -227,6 +243,23 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+}
+
+// Similarity types
+export interface SimilarityStats {
+  totalVotes: number;
+  similarUsers: number;
+  topSimilarity: number;
+  avgSimilarity?: number;
+  comparedWith?: number;
+  message: string;
+}
+
+export interface PollSimilarity {
+  sameChoiceCount: number;
+  similarInGroup: number;
+  similarityRate: number;
+  message: string | null;
 }
 
 // Admin types
