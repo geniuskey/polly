@@ -175,6 +175,35 @@ class ApiClient {
     });
   }
 
+  // Explore
+  async getRanking(params?: {
+    type?: 'popular' | 'controversial' | 'rising';
+    period?: 'day' | 'week' | 'month' | 'all';
+    limit?: number;
+  }): Promise<ApiResponse<RankingResponse>> {
+    const searchParams = new URLSearchParams();
+    if (params?.type) searchParams.set('type', params.type);
+    if (params?.period) searchParams.set('period', params.period);
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    const query = searchParams.toString();
+    return this.request(`/explore/ranking${query ? `?${query}` : ''}`);
+  }
+
+  async search(q: string, limit?: number): Promise<ApiResponse<SearchResponse>> {
+    const searchParams = new URLSearchParams({ q });
+    if (limit) searchParams.set('limit', String(limit));
+    return this.request(`/explore/search?${searchParams.toString()}`);
+  }
+
+  async getAllTags(limit?: number): Promise<ApiResponse<{ tags: TagInfo[] }>> {
+    const query = limit ? `?limit=${limit}` : '';
+    return this.request(`/explore/tags${query}`);
+  }
+
+  async getInsights(): Promise<ApiResponse<InsightsData>> {
+    return this.request('/explore/insights');
+  }
+
   // Similarity
   async getMySimilarity(): Promise<ApiResponse<SimilarityStats>> {
     return this.request('/users/me/similarity');
@@ -243,6 +272,61 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+}
+
+// Explore types
+export interface RankedPoll {
+  rank: number;
+  id: string;
+  question: string;
+  options: string[];
+  responseCount: number;
+  controversyScore: number;
+  createdAt: string;
+}
+
+export interface RankingResponse {
+  polls: RankedPoll[];
+  type: string;
+  period: string;
+}
+
+export interface SearchPoll {
+  id: string;
+  question: string;
+  options: string[];
+  responseCount: number;
+  createdAt: string;
+}
+
+export interface SearchResponse {
+  polls: SearchPoll[];
+  query: string;
+}
+
+export interface TagInfo {
+  id: number;
+  name: string;
+  pollCount: number;
+}
+
+export interface InsightsData {
+  totals: {
+    polls: number;
+    responses: number;
+    participants: number;
+  };
+  hourlyActivity: Array<{ hour: number; count: number }>;
+  genderDivisive: Array<{
+    id: string;
+    question: string;
+    responseCount: number;
+    genderGap: number;
+  }>;
+  categoryTrends: Array<{
+    category: string;
+    responses: number;
+  }>;
 }
 
 // Similarity types

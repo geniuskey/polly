@@ -27,7 +27,10 @@ const Layout = () => {
         </Link>
         <nav className="nav">
           <Link to="/">홈</Link>
-          <Link to="/create">설문 만들기</Link>
+          <Link to="/ranking">랭킹</Link>
+          <Link to="/explore">탐색</Link>
+          <Link to="/insights">인사이트</Link>
+          <Link to="/create">만들기</Link>
           <SignedIn>
             <Link to="/profile">프로필</Link>
             {isAdmin && <Link to="/admin" className="admin-link">관리자</Link>}

@@ -6,6 +6,9 @@ import CreatePoll from './components/CreatePoll';
 import Profile from './components/Profile';
 import PollDetailPage from './pages/PollDetailPage';
 import AdminPage from './pages/AdminPage';
+import RankingPage from './pages/RankingPage';
+import ExplorePage from './pages/ExplorePage';
+import InsightsPage from './pages/InsightsPage';
 import { initKakao } from './lib/kakao';
 import './App.css';
 
@@ -23,6 +26,9 @@ const App = () => {
           <Route path="/create" element={<CreatePoll />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/ranking" element={<RankingPage />} />
+          <Route path="/explore" element={<ExplorePage />} />
+          <Route path="/insights" element={<InsightsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
