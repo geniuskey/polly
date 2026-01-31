@@ -375,6 +375,165 @@
   gap: 1rem;
 }
 
+/* ============================================
+   Swipeable Card Stack
+   ============================================ */
+.swipeable-stack-container {
+  position: relative;
+  width: 100%;
+  touch-action: pan-y;
+}
+
+.swipe-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.swipe-progress-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.swipe-progress-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--color-bg-secondary);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.swipe-progress-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 9999px;
+  transition: width 0.3s ease-out;
+}
+
+.swipeable-stack {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 12px;
+  cursor: grab;
+  outline: none;
+}
+
+.swipeable-stack:active {
+  cursor: grabbing;
+}
+
+.swipeable-track {
+  display: flex;
+  width: 100%;
+}
+
+.swipeable-card {
+  flex: 0 0 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.swipeable-card .poll-card {
+  margin: 0;
+  height: 100%;
+  user-select: none;
+}
+
+.swipe-hint {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.swipe-hint-text {
+  padding: 0.5rem 1rem;
+  background: var(--color-primary);
+  color: white;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.swipe-nav {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.swipe-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: var(--color-bg-card);
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: var(--color-text);
+  transition: all 0.2s ease;
+}
+
+.swipe-nav-btn:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  transform: scale(1.05);
+}
+
+.swipe-nav-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.swipe-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Swipe card animation states */
+.swipeable-card.active .poll-card {
+  animation: none;
+}
+
+/* Swipe instructions tooltip */
+.swipe-instructions {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--color-text-dimmed);
+  margin-top: 0.75rem;
+}
+
+/* Mobile optimizations for swipe */
+@media (max-width: 768px) {
+  .swipe-nav {
+    gap: 2rem;
+  }
+
+  .swipe-nav-btn {
+    width: 52px;
+    height: 52px;
+    font-size: 1.5rem;
+  }
+
+  .swipeable-stack {
+    /* Prevent scroll interference */
+    touch-action: pan-y pinch-zoom;
+  }
+}
+
 .load-more {
   display: block;
   width: 100%;
@@ -1431,6 +1590,37 @@
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 1rem;
+}
+
+.feed-left-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.view-mode-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  transition: all 0.2s;
+}
+
+.view-mode-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.view-mode-btn.active {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .hide-voted-btn {
