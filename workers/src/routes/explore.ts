@@ -255,4 +255,197 @@ explore.get('/insights', async (c) => {
   });
 });
 
+// GET /api/explore/trends/time-series - 일별/주별 투표 트렌드
+explore.get('/trends/time-series', async (c) => {
+  const period = c.req.query('period') || 'week'; // week, month
+  const granularity = c.req.query('granularity') || 'day'; // day, week
+
+  let dateFilter = '';
+  let dateFormat = '%Y-%m-%d';
+
+  if (period === 'week') {
+    dateFilter = "WHERE created_at > datetime('now', '-7 days')";
+  } else if (period === 'month') {
+    dateFilter = "WHERE created_at > datetime('now', '-30 days')";
+  }
+
+  if (granularity === 'week') {
+    dateFormat = '%Y-W%W';
+  }
+
+  // Get vote counts per time unit
+  const votesResult = await c.env.survey_db.prepare(`
+    SELECT strftime('${dateFormat}', created_at) as date, COUNT(*) as vote_count
+    FROM responses
+    ${dateFilter}
+    GROUP BY date
+    ORDER BY date ASC
+  `).all<{ date: string; vote_count: number }>();
+
+  // Get new polls per time unit
+  const pollsResult = await c.env.survey_db.prepare(`
+    SELECT strftime('${dateFormat}', created_at) as date, COUNT(*) as poll_count
+    FROM polls
+    ${dateFilter}
+    GROUP BY date
+    ORDER BY date ASC
+  `).all<{ date: string; poll_count: number }>();
+
+  // Merge data
+  const dataMap: Record<string, { votes: number; polls: number }> = {};
+  for (const row of votesResult.results || []) {
+    dataMap[row.date] = { votes: row.vote_count, polls: 0 };
+  }
+  for (const row of pollsResult.results || []) {
+    if (!dataMap[row.date]) dataMap[row.date] = { votes: 0, polls: 0 };
+    dataMap[row.date].polls = row.poll_count;
+  }
+
+  const series = Object.entries(dataMap)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, data]) => ({
+      date,
+      votes: data.votes,
+      polls: data.polls,
+    }));
+
+  return success(c, { series, period, granularity });
+});
+
+// GET /api/explore/trends/demographics - 연령/성별/지역별 비교
+explore.get('/trends/demographics', async (c) => {
+  const type = c.req.query('type') || 'gender'; // gender, age, region
+  const period = c.req.query('period') || 'week';
+
+  let dateFilter = '';
+  if (period === 'day') {
+    dateFilter = "AND r.created_at > datetime('now', '-1 day')";
+  } else if (period === 'week') {
+    dateFilter = "AND r.created_at > datetime('now', '-7 days')";
+  } else if (period === 'month') {
+    dateFilter = "AND r.created_at > datetime('now', '-30 days')";
+  }
+
+  let groupColumn = '';
+  switch (type) {
+    case 'gender':
+      groupColumn = 'r.gender';
+      break;
+    case 'age':
+      groupColumn = 'r.age_group';
+      break;
+    case 'region':
+      groupColumn = 'r.region';
+      break;
+    default:
+      groupColumn = 'r.gender';
+  }
+
+  const result = await c.env.survey_db.prepare(`
+    SELECT ${groupColumn} as group_value, COUNT(*) as vote_count
+    FROM responses r
+    WHERE ${groupColumn} IS NOT NULL ${dateFilter}
+    GROUP BY ${groupColumn}
+    ORDER BY vote_count DESC
+  `).all<{ group_value: string; vote_count: number }>();
+
+  const total = (result.results || []).reduce((sum, r) => sum + r.vote_count, 0);
+  const data = (result.results || []).map(row => ({
+    group: row.group_value,
+    count: row.vote_count,
+    percentage: total > 0 ? Math.round((row.vote_count / total) * 100) : 0,
+  }));
+
+  return success(c, { data, type, period, total });
+});
+
+// GET /api/explore/trends/tags - 태그 인기도 추이
+explore.get('/trends/tags', async (c) => {
+  const period = c.req.query('period') || 'week';
+  const limit = Math.min(Number(c.req.query('limit')) || 10, 20);
+
+  let dateFilter = '';
+  let prevDateFilter = '';
+
+  if (period === 'day') {
+    dateFilter = "AND r.created_at > datetime('now', '-1 day')";
+    prevDateFilter = "AND r.created_at BETWEEN datetime('now', '-2 days') AND datetime('now', '-1 day')";
+  } else if (period === 'week') {
+    dateFilter = "AND r.created_at > datetime('now', '-7 days')";
+    prevDateFilter = "AND r.created_at BETWEEN datetime('now', '-14 days') AND datetime('now', '-7 days')";
+  } else if (period === 'month') {
+    dateFilter = "AND r.created_at > datetime('now', '-30 days')";
+    prevDateFilter = "AND r.created_at BETWEEN datetime('now', '-60 days') AND datetime('now', '-30 days')";
+  }
+
+  // Current period tag counts
+  const currentResult = await c.env.survey_db.prepare(`
+    SELECT t.name as tag, COUNT(*) as vote_count
+    FROM responses r
+    JOIN poll_tags pt ON r.poll_id = pt.poll_id
+    JOIN tags t ON pt.tag_id = t.id
+    WHERE 1=1 ${dateFilter}
+    GROUP BY t.name
+    ORDER BY vote_count DESC
+    LIMIT ?
+  `).bind(limit).all<{ tag: string; vote_count: number }>();
+
+  // Previous period for comparison
+  const prevResult = await c.env.survey_db.prepare(`
+    SELECT t.name as tag, COUNT(*) as vote_count
+    FROM responses r
+    JOIN poll_tags pt ON r.poll_id = pt.poll_id
+    JOIN tags t ON pt.tag_id = t.id
+    WHERE 1=1 ${prevDateFilter}
+    GROUP BY t.name
+  `).all<{ tag: string; vote_count: number }>();
+
+  const prevMap = new Map((prevResult.results || []).map(r => [r.tag, r.vote_count]));
+
+  const tags = (currentResult.results || []).map(row => {
+    const prevCount = prevMap.get(row.tag) || 0;
+    const change = prevCount > 0
+      ? Math.round(((row.vote_count - prevCount) / prevCount) * 100)
+      : (row.vote_count > 0 ? 100 : 0);
+
+    return {
+      tag: row.tag,
+      count: row.vote_count,
+      prevCount,
+      change,
+      trend: change > 10 ? 'up' : change < -10 ? 'down' : 'stable',
+    };
+  });
+
+  return success(c, { tags, period });
+});
+
+// GET /api/explore/trends/realtime - 실시간 트렌딩 (최근 1시간)
+explore.get('/trends/realtime', async (c) => {
+  const limit = Math.min(Number(c.req.query('limit')) || 5, 10);
+
+  // Most active polls in last hour
+  const result = await c.env.survey_db.prepare(`
+    SELECT p.id, p.question, COUNT(r.id) as recent_votes,
+      (SELECT COUNT(*) FROM responses WHERE poll_id = p.id) as total_votes
+    FROM polls p
+    JOIN responses r ON p.id = r.poll_id
+    WHERE r.created_at > datetime('now', '-1 hour')
+      AND p.is_active = 1
+    GROUP BY p.id
+    ORDER BY recent_votes DESC
+    LIMIT ?
+  `).bind(limit).all<{ id: string; question: string; recent_votes: number; total_votes: number }>();
+
+  const trending = (result.results || []).map((row, index) => ({
+    rank: index + 1,
+    id: row.id,
+    question: row.question,
+    recentVotes: row.recent_votes,
+    totalVotes: row.total_votes,
+  }));
+
+  return success(c, { trending, timestamp: new Date().toISOString() });
+});
+
 export default explore;

@@ -190,16 +190,17 @@ const PollCard = ({ poll }: PollCardProps) => {
         <h3 className="poll-question">{poll.question}</h3>
       </Link>
 
-      <div className="poll-options">
+      <div className={`poll-options ${poll.options.some(o => o.imageUrl) ? 'with-images' : ''}`}>
         {poll.options.map((option, index) => {
           const previewPct = hasPreview ? previewPercentages[index] || 0 : 0;
           const resultPct = results?.[index]?.percentage || 0;
           const displayPct = voted ? resultPct : previewPct;
+          const hasImage = !!option.imageUrl;
 
           return (
             <button
               key={index}
-              className={`poll-option ${voted ? 'voted' : 'preview'} ${selectedOption === index ? 'selected' : ''} ${justVoted && selectedOption === index ? 'just-voted' : ''}`}
+              className={`poll-option ${voted ? 'voted' : 'preview'} ${selectedOption === index ? 'selected' : ''} ${justVoted && selectedOption === index ? 'just-voted' : ''} ${hasImage ? 'has-image' : ''}`}
               onClick={() => handleVote(index)}
               disabled={voted || isExpired}
             >
@@ -211,11 +212,18 @@ const PollCard = ({ poll }: PollCardProps) => {
                 />
               )}
 
+              {/* Option image */}
+              {hasImage && (
+                <div className="option-image">
+                  <img src={option.imageUrl!} alt={option.text} loading="lazy" />
+                </div>
+              )}
+
               <span className="option-text">
                 {selectedOption === index && voted && (
                   <span className="my-vote-badge">내 선택</span>
                 )}
-                {option}
+                {option.text}
               </span>
 
               {/* Show percentages */}
@@ -274,7 +282,7 @@ const PollCard = ({ poll }: PollCardProps) => {
             <ShareCard
               pollId={poll.id}
               question={poll.question}
-              selectedOption={poll.options[selectedOption]}
+              selectedOption={poll.options[selectedOption].text}
               percentage={myPercentage}
               totalVotes={poll.responseCount + 1}
               onClose={() => setShowShareCard(false)}

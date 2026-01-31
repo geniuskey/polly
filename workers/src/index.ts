@@ -7,6 +7,7 @@ import comments from './routes/comments';
 import tags from './routes/tags';
 import admin from './routes/admin';
 import explore from './routes/explore';
+import images from './routes/images';
 
 const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
@@ -25,6 +26,7 @@ app.route('/api/users', users);
 app.route('/api/tags', tags);
 app.route('/api/admin', admin);
 app.route('/api/explore', explore);
+app.route('/api/images', images);
 
 // 404 handler
 app.notFound((c) => {

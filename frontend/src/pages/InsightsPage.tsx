@@ -1,22 +1,99 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { apiClient, type InsightsData } from '../lib/api';
+import {
+  apiClient,
+  type InsightsData,
+  type TimeSeriesData,
+  type DemographicsData,
+  type TagTrendData,
+  type RealtimeTrendData,
+} from '../lib/api';
+import TrendChart from '../components/TrendChart';
+import DemographicComparison from '../components/DemographicComparison';
+
+type TrendPeriod = 'day' | 'week' | 'month';
+type DemographicType = 'gender' | 'age' | 'region';
 
 const InsightsPage = () => {
-  const { data, isLoading, error } = useQuery({
+  const [trendPeriod, setTrendPeriod] = useState<TrendPeriod>('week');
+  const [demoType, setDemoType] = useState<DemographicType>('gender');
+
+  const { data: insightsData, isLoading: insightsLoading, error: insightsError } = useQuery({
     queryKey: ['insights'],
     queryFn: () => apiClient.getInsights(),
   });
 
-  if (isLoading) return <div className="insights-page"><div className="loading">분석 중...</div></div>;
-  if (error) return <div className="insights-page"><div className="error-state">불러오기 실패</div></div>;
+  const { data: timeSeriesData, isLoading: timeSeriesLoading } = useQuery({
+    queryKey: ['trendTimeSeries', trendPeriod],
+    queryFn: () => apiClient.getTrendTimeSeries({ period: trendPeriod }),
+  });
 
-  const insights = data?.data as InsightsData;
+  const { data: demographicsData, isLoading: demographicsLoading } = useQuery({
+    queryKey: ['trendDemographics', demoType, trendPeriod],
+    queryFn: () => apiClient.getTrendDemographics({ type: demoType, period: trendPeriod }),
+  });
+
+  const { data: tagTrendData, isLoading: tagTrendLoading } = useQuery({
+    queryKey: ['trendTags', trendPeriod],
+    queryFn: () => apiClient.getTrendTags({ period: trendPeriod, limit: 8 }),
+  });
+
+  const { data: realtimeData, isLoading: realtimeLoading } = useQuery({
+    queryKey: ['trendRealtime'],
+    queryFn: () => apiClient.getTrendRealtime(5),
+    refetchInterval: 60000, // Refresh every minute
+  });
+
+  if (insightsLoading) return <div className="insights-page"><div className="loading">분석 중...</div></div>;
+  if (insightsError) return <div className="insights-page"><div className="error-state">불러오기 실패</div></div>;
+
+  const insights = insightsData?.data as InsightsData;
 
   return (
     <div className="insights-page">
       <h1>인사이트</h1>
       <p className="insights-subtitle">VibePulse 투표 트렌드를 한눈에</p>
+
+      {/* Period Selector */}
+      <div className="trend-period-selector">
+        <button
+          className={`period-btn ${trendPeriod === 'day' ? 'active' : ''}`}
+          onClick={() => setTrendPeriod('day')}
+        >
+          오늘
+        </button>
+        <button
+          className={`period-btn ${trendPeriod === 'week' ? 'active' : ''}`}
+          onClick={() => setTrendPeriod('week')}
+        >
+          이번 주
+        </button>
+        <button
+          className={`period-btn ${trendPeriod === 'month' ? 'active' : ''}`}
+          onClick={() => setTrendPeriod('month')}
+        >
+          이번 달
+        </button>
+      </div>
+
+      {/* Realtime Trending */}
+      {!realtimeLoading && realtimeData?.data && (realtimeData.data as RealtimeTrendData).trending.length > 0 && (
+        <section className="insights-section realtime-section">
+          <h2>
+            <span className="live-indicator" /> 실시간 인기
+          </h2>
+          <div className="realtime-list">
+            {(realtimeData.data as RealtimeTrendData).trending.map((item) => (
+              <Link key={item.id} to={`/poll/${item.id}`} className="realtime-item">
+                <span className="realtime-rank">{item.rank}</span>
+                <span className="realtime-question">{item.question}</span>
+                <span className="realtime-votes">+{item.recentVotes}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Total Stats */}
       <section className="insights-section">
@@ -38,6 +115,73 @@ const InsightsPage = () => {
             <span className="stat-label">참여자</span>
           </div>
         </div>
+      </section>
+
+      {/* Time Series Chart */}
+      <section className="insights-section">
+        <h2>투표 트렌드</h2>
+        {timeSeriesLoading ? (
+          <div className="chart-loading">로딩 중...</div>
+        ) : timeSeriesData?.data ? (
+          <TrendChart data={timeSeriesData.data as TimeSeriesData} />
+        ) : null}
+      </section>
+
+      {/* Demographics */}
+      <section className="insights-section">
+        <h2>참여자 분포</h2>
+        <div className="demo-type-selector">
+          <button
+            className={`demo-type-btn ${demoType === 'gender' ? 'active' : ''}`}
+            onClick={() => setDemoType('gender')}
+          >
+            성별
+          </button>
+          <button
+            className={`demo-type-btn ${demoType === 'age' ? 'active' : ''}`}
+            onClick={() => setDemoType('age')}
+          >
+            연령대
+          </button>
+          <button
+            className={`demo-type-btn ${demoType === 'region' ? 'active' : ''}`}
+            onClick={() => setDemoType('region')}
+          >
+            지역
+          </button>
+        </div>
+        {demographicsLoading ? (
+          <div className="chart-loading">로딩 중...</div>
+        ) : demographicsData?.data ? (
+          <DemographicComparison data={demographicsData.data as DemographicsData} />
+        ) : null}
+      </section>
+
+      {/* Tag Trends */}
+      <section className="insights-section">
+        <h2>태그 트렌드</h2>
+        {tagTrendLoading ? (
+          <div className="chart-loading">로딩 중...</div>
+        ) : tagTrendData?.data && (tagTrendData.data as TagTrendData).tags.length > 0 ? (
+          <div className="tag-trends">
+            {(tagTrendData.data as TagTrendData).tags.map((item) => (
+              <Link key={item.tag} to={`/?tag=${item.tag}`} className="tag-trend-item">
+                <span className="tag-name">#{item.tag}</span>
+                <div className="tag-stats">
+                  <span className="tag-count">{item.count}표</span>
+                  <span className={`tag-change ${item.trend}`}>
+                    {item.trend === 'up' && '↑'}
+                    {item.trend === 'down' && '↓'}
+                    {item.trend === 'stable' && '→'}
+                    {Math.abs(item.change)}%
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <p className="no-data">아직 태그 데이터가 없습니다.</p>
+        )}
       </section>
 
       {/* Hourly Activity Chart */}
@@ -79,22 +223,6 @@ const InsightsPage = () => {
                   <span className="gap-label">차이</span>
                 </div>
               </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Category Trends */}
-      {insights.categoryTrends.length > 0 && (
-        <section className="insights-section">
-          <h2>이번 주 인기 카테고리</h2>
-          <div className="category-trends">
-            {insights.categoryTrends.map((cat, index) => (
-              <div key={cat.category} className="category-trend-item">
-                <span className="trend-rank">{index + 1}</span>
-                <span className="trend-category">{cat.category}</span>
-                <span className="trend-count">{cat.responses}표</span>
-              </div>
             ))}
           </div>
         </section>

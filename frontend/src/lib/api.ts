@@ -2,8 +2,10 @@ import type {
   ApiResponse,
   Comment,
   CommentListResponse,
+  CommentRepliesResponse,
   CreateCommentRequest,
   CreatePollRequest,
+  LikeCommentResponse,
   PollDetail,
   PollListResponse,
   Tag,
@@ -175,6 +177,75 @@ class ApiClient {
     });
   }
 
+  async likeComment(
+    pollId: string,
+    commentId: string,
+  ): Promise<ApiResponse<LikeCommentResponse>> {
+    return this.request(`/polls/${pollId}/comments/${commentId}/like`, {
+      method: 'POST',
+    });
+  }
+
+  async unlikeComment(
+    pollId: string,
+    commentId: string,
+  ): Promise<ApiResponse<LikeCommentResponse>> {
+    return this.request(`/polls/${pollId}/comments/${commentId}/like`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getCommentReplies(
+    pollId: string,
+    commentId: string,
+    cursor?: string,
+  ): Promise<CommentRepliesResponse> {
+    const query = cursor ? `?cursor=${cursor}` : '';
+    return this.request(`/polls/${pollId}/comments/${commentId}/replies${query}`);
+  }
+
+  async createReply(
+    pollId: string,
+    parentCommentId: string,
+    data: { content: string },
+  ): Promise<ApiResponse<Comment>> {
+    return this.request(`/polls/${pollId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ ...data, parentCommentId }),
+    });
+  }
+
+  // Images
+  async uploadImage(file: File): Promise<ApiResponse<{ imageUrl: string }>> {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const headers: Record<string, string> = {};
+    if (this.getToken) {
+      const token = await this.getToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+    }
+
+    const response = await fetch(`${this.baseUrl}/images/upload`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      const message = errorData?.error?.message || `HTTP ${response.status} 오류`;
+      const code = errorData?.error?.code || 'UNKNOWN_ERROR';
+      const error = new Error(message) as Error & { code: string };
+      error.code = code;
+      throw error;
+    }
+
+    return response.json();
+  }
+
   // Explore
   async getRanking(params?: {
     type?: 'popular' | 'controversial' | 'rising';
@@ -204,6 +275,44 @@ class ApiClient {
     return this.request('/explore/insights');
   }
 
+  async getTrendTimeSeries(params?: {
+    period?: 'day' | 'week' | 'month';
+    granularity?: 'day' | 'week';
+  }): Promise<ApiResponse<TimeSeriesData>> {
+    const searchParams = new URLSearchParams();
+    if (params?.period) searchParams.set('period', params.period);
+    if (params?.granularity) searchParams.set('granularity', params.granularity);
+    const query = searchParams.toString();
+    return this.request(`/explore/trends/time-series${query ? `?${query}` : ''}`);
+  }
+
+  async getTrendDemographics(params?: {
+    type?: 'gender' | 'age' | 'region';
+    period?: 'day' | 'week' | 'month';
+  }): Promise<ApiResponse<DemographicsData>> {
+    const searchParams = new URLSearchParams();
+    if (params?.type) searchParams.set('type', params.type);
+    if (params?.period) searchParams.set('period', params.period);
+    const query = searchParams.toString();
+    return this.request(`/explore/trends/demographics${query ? `?${query}` : ''}`);
+  }
+
+  async getTrendTags(params?: {
+    period?: 'day' | 'week' | 'month';
+    limit?: number;
+  }): Promise<ApiResponse<TagTrendData>> {
+    const searchParams = new URLSearchParams();
+    if (params?.period) searchParams.set('period', params.period);
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    const query = searchParams.toString();
+    return this.request(`/explore/trends/tags${query ? `?${query}` : ''}`);
+  }
+
+  async getTrendRealtime(limit?: number): Promise<ApiResponse<RealtimeTrendData>> {
+    const query = limit ? `?limit=${limit}` : '';
+    return this.request(`/explore/trends/realtime${query}`);
+  }
+
   // XP/Level
   async getMyXp(): Promise<ApiResponse<XpStats>> {
     return this.request('/users/me/xp');
@@ -217,6 +326,11 @@ class ApiClient {
   // Similarity
   async getMySimilarity(): Promise<ApiResponse<SimilarityStats>> {
     return this.request('/users/me/similarity');
+  }
+
+  // Statistics
+  async getMyStatistics(): Promise<ApiResponse<UserStatistics>> {
+    return this.request('/users/me/statistics');
   }
 
   async checkSimilarity(data: {
@@ -339,6 +453,50 @@ export interface InsightsData {
   }>;
 }
 
+// Trend types
+export interface TimeSeriesData {
+  series: Array<{
+    date: string;
+    votes: number;
+    polls: number;
+  }>;
+  period: string;
+  granularity: string;
+}
+
+export interface DemographicsData {
+  data: Array<{
+    group: string;
+    count: number;
+    percentage: number;
+  }>;
+  type: string;
+  period: string;
+  total: number;
+}
+
+export interface TagTrendData {
+  tags: Array<{
+    tag: string;
+    count: number;
+    prevCount: number;
+    change: number;
+    trend: 'up' | 'down' | 'stable';
+  }>;
+  period: string;
+}
+
+export interface RealtimeTrendData {
+  trending: Array<{
+    rank: number;
+    id: string;
+    question: string;
+    recentVotes: number;
+    totalVotes: number;
+  }>;
+  timestamp: string;
+}
+
 // XP types
 export interface XpHistoryEntry {
   id: number;
@@ -403,6 +561,46 @@ export interface PersonalityAnalysis {
     uniqueness: number;
     recentMatch: string;
   };
+}
+
+// Statistics types
+export interface VotingPatterns {
+  byDayOfWeek: Record<string, number>;
+  byHour: Record<string, number>;
+  heatmap: Record<string, Record<string, number>>;
+}
+
+export interface CategoryPreference {
+  tag: string;
+  count: number;
+  percentage: number;
+}
+
+export interface EarnedAchievement {
+  id: string;
+  name: string;
+  emoji: string;
+  earnedAt: string;
+}
+
+export interface AchievementProgress {
+  id: string;
+  name: string;
+  emoji: string;
+  current: number;
+  target: number;
+  percentage: number;
+}
+
+export interface UserStatistics {
+  votingPatterns: VotingPatterns | null;
+  categoryPreferences: CategoryPreference[];
+  achievements: {
+    earned: EarnedAchievement[];
+    progress: AchievementProgress[];
+  };
+  newlyEarned?: string[];
+  message?: string;
 }
 
 // Similarity types

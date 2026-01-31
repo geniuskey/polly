@@ -116,11 +116,27 @@ CREATE TABLE IF NOT EXISTS comments (
   poll_id TEXT NOT NULL REFERENCES polls(id) ON DELETE CASCADE,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   content TEXT NOT NULL CHECK (length(content) >= 1 AND length(content) <= 500),
+  parent_comment_id TEXT REFERENCES comments(id) ON DELETE CASCADE,
+  like_count INTEGER DEFAULT 0,
+  reply_count INTEGER DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_comments_poll_id ON comments(poll_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
+CREATE INDEX IF NOT EXISTS idx_comments_parent ON comments(parent_comment_id);
+
+-- ============================================
+-- Comment Likes
+-- ============================================
+CREATE TABLE IF NOT EXISTS comment_likes (
+  comment_id TEXT NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (comment_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_comment_likes_user ON comment_likes(user_id);
 
 -- ============================================
 -- Tags (Hashtag system)
@@ -146,6 +162,27 @@ CREATE TABLE IF NOT EXISTS poll_tags (
 
 CREATE INDEX IF NOT EXISTS idx_poll_tags_poll_id ON poll_tags(poll_id);
 CREATE INDEX IF NOT EXISTS idx_poll_tags_tag_id ON poll_tags(tag_id);
+
+-- ============================================
+-- Achievements
+-- ============================================
+CREATE TABLE IF NOT EXISTS achievements (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL,
+  emoji TEXT NOT NULL,
+  category TEXT NOT NULL,
+  threshold INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS user_achievements (
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  achievement_id TEXT NOT NULL,
+  earned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id, achievement_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_achievements_user ON user_achievements(user_id);
 
 -- ============================================
 -- Views (for convenience)

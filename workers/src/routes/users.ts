@@ -538,6 +538,188 @@ users.get('/me/personality', async (c) => {
   });
 });
 
+// GET /api/users/me/statistics - 개인 통계 대시보드
+users.get('/me/statistics', async (c) => {
+  const userId = c.get('userId')!;
+
+  // Get user's fingerprint
+  const myResponse = await c.env.survey_db.prepare(
+    'SELECT fingerprint FROM responses WHERE user_id = ? ORDER BY created_at DESC LIMIT 1'
+  ).bind(userId).first<{ fingerprint: string }>();
+
+  if (!myResponse) {
+    return success(c, {
+      votingPatterns: null,
+      categoryPreferences: [],
+      achievements: { earned: [], progress: [] },
+      message: '아직 투표 기록이 없어요. 투표를 시작해보세요!',
+    });
+  }
+
+  const fingerprint = myResponse.fingerprint;
+
+  // 1. Voting patterns by day of week and hour
+  const votingPatternsResult = await c.env.survey_db.prepare(`
+    SELECT
+      strftime('%w', created_at) as day_of_week,
+      strftime('%H', created_at) as hour,
+      COUNT(*) as count
+    FROM responses
+    WHERE fingerprint = ?
+    GROUP BY day_of_week, hour
+  `).bind(fingerprint).all<{ day_of_week: string; hour: string; count: number }>();
+
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const byDayOfWeek: Record<string, number> = {};
+  const byHour: Record<string, number> = {};
+  const heatmap: Record<string, Record<string, number>> = {};
+
+  // Initialize
+  dayNames.forEach(day => {
+    byDayOfWeek[day] = 0;
+    heatmap[day] = {};
+  });
+  for (let h = 0; h < 24; h++) {
+    const hourStr = h.toString().padStart(2, '0');
+    byHour[hourStr] = 0;
+  }
+
+  // Fill data
+  for (const row of votingPatternsResult.results || []) {
+    const day = dayNames[parseInt(row.day_of_week)];
+    const hour = row.hour;
+    byDayOfWeek[day] = (byDayOfWeek[day] || 0) + row.count;
+    byHour[hour] = (byHour[hour] || 0) + row.count;
+    if (!heatmap[day]) heatmap[day] = {};
+    heatmap[day][hour] = (heatmap[day][hour] || 0) + row.count;
+  }
+
+  // 2. Category/Tag preferences
+  const categoryPrefsResult = await c.env.survey_db.prepare(`
+    SELECT t.name as tag, COUNT(*) as count
+    FROM responses r
+    JOIN poll_tags pt ON r.poll_id = pt.poll_id
+    JOIN tags t ON pt.tag_id = t.id
+    WHERE r.fingerprint = ?
+    GROUP BY t.name
+    ORDER BY count DESC
+    LIMIT 10
+  `).bind(fingerprint).all<{ tag: string; count: number }>();
+
+  const totalVotes = (categoryPrefsResult.results || []).reduce((sum, r) => sum + r.count, 0);
+  const categoryPreferences = (categoryPrefsResult.results || []).map(row => ({
+    tag: row.tag,
+    count: row.count,
+    percentage: totalVotes > 0 ? Math.round((row.count / totalVotes) * 100) : 0,
+  }));
+
+  // 3. Achievements - count actual stats
+  const statsResult = await c.env.survey_db.prepare(`
+    SELECT
+      (SELECT COUNT(*) FROM responses WHERE fingerprint = ?) as vote_count,
+      (SELECT COUNT(*) FROM polls WHERE creator_id = ?) as poll_count,
+      (SELECT COUNT(*) FROM comments WHERE user_id = ?) as comment_count,
+      (SELECT COUNT(DISTINCT t.id) FROM responses r
+       JOIN poll_tags pt ON r.poll_id = pt.poll_id
+       JOIN tags t ON pt.tag_id = t.id
+       WHERE r.fingerprint = ?) as tag_count,
+      (SELECT level FROM users WHERE id = ?) as level
+  `).bind(fingerprint, userId, userId, fingerprint, userId).first<{
+    vote_count: number;
+    poll_count: number;
+    comment_count: number;
+    tag_count: number;
+    level: number;
+  }>();
+
+  const stats = statsResult || { vote_count: 0, poll_count: 0, comment_count: 0, tag_count: 0, level: 1 };
+
+  // Get all achievements
+  const allAchievements = await c.env.survey_db.prepare(
+    'SELECT * FROM achievements ORDER BY category, threshold'
+  ).all<{ id: string; name: string; description: string; emoji: string; category: string; threshold: number }>();
+
+  // Get user's earned achievements
+  const earnedResult = await c.env.survey_db.prepare(
+    'SELECT achievement_id, earned_at FROM user_achievements WHERE user_id = ?'
+  ).bind(userId).all<{ achievement_id: string; earned_at: string }>();
+
+  const earnedMap = new Map((earnedResult.results || []).map(r => [r.achievement_id, r.earned_at]));
+
+  // Calculate progress for each achievement
+  const getCurrent = (category: string, threshold: number): number => {
+    switch (category) {
+      case 'voting': return stats.vote_count;
+      case 'creation': return stats.poll_count;
+      case 'social': return stats.comment_count;
+      case 'exploration': return stats.tag_count;
+      case 'level': return stats.level;
+      default: return 0;
+    }
+  };
+
+  const earned: { id: string; name: string; emoji: string; earnedAt: string }[] = [];
+  const progress: { id: string; name: string; emoji: string; current: number; target: number; percentage: number }[] = [];
+
+  // Check and potentially award new achievements
+  const newlyEarned: string[] = [];
+
+  for (const ach of allAchievements.results || []) {
+    const current = getCurrent(ach.category, ach.threshold);
+    const isEarned = earnedMap.has(ach.id);
+
+    if (isEarned) {
+      earned.push({
+        id: ach.id,
+        name: ach.name,
+        emoji: ach.emoji,
+        earnedAt: earnedMap.get(ach.id)!,
+      });
+    } else {
+      // Check if should be awarded now
+      if (current >= ach.threshold) {
+        newlyEarned.push(ach.id);
+        earned.push({
+          id: ach.id,
+          name: ach.name,
+          emoji: ach.emoji,
+          earnedAt: new Date().toISOString(),
+        });
+      } else {
+        progress.push({
+          id: ach.id,
+          name: ach.name,
+          emoji: ach.emoji,
+          current,
+          target: ach.threshold,
+          percentage: Math.min(100, Math.round((current / ach.threshold) * 100)),
+        });
+      }
+    }
+  }
+
+  // Award newly earned achievements
+  for (const achId of newlyEarned) {
+    await c.env.survey_db.prepare(
+      'INSERT OR IGNORE INTO user_achievements (user_id, achievement_id) VALUES (?, ?)'
+    ).bind(userId, achId).run();
+  }
+
+  return success(c, {
+    votingPatterns: {
+      byDayOfWeek,
+      byHour,
+      heatmap,
+    },
+    categoryPreferences,
+    achievements: {
+      earned: earned.sort((a, b) => new Date(b.earnedAt).getTime() - new Date(a.earnedAt).getTime()),
+      progress: progress.slice(0, 6), // Show top 6 in-progress achievements
+    },
+    newlyEarned: newlyEarned.length > 0 ? newlyEarned : undefined,
+  });
+});
+
 // 16가지 성향 유형 정의
 function getPersonalityType(code: string): {
   code: string;

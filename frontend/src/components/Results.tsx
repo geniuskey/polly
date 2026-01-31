@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import type { VoteResult } from '../types';
+import type { VoteResult, PollOption } from '../types';
 
 interface ResultsProps {
   results: VoteResult;
-  options: string[];
+  options: PollOption[];
 }
 
 const GENDER_LABELS: Record<string, string> = {
@@ -81,7 +81,7 @@ const Results = ({ results, options }: ResultsProps) => {
         <div className="results-bars">
           {results.options.map((opt, i) => (
             <div key={i} className="result-row">
-              <div className="result-label">{options[i]}</div>
+              <div className="result-label">{options[i]?.text || `옵션 ${i + 1}`}</div>
               <div className="result-bar-wrapper">
                 <div
                   className="result-bar-fill"
@@ -119,7 +119,7 @@ const Results = ({ results, options }: ResultsProps) => {
           <div className="comparison-chart">
             {options.map((option, optIndex) => (
               <div key={optIndex} className="comparison-row">
-                <div className="comparison-label">{option}</div>
+                <div className="comparison-label">{option.text}</div>
                 <div className="comparison-bars">
                   {genders.map((gender) => {
                     const pct = results.byGender![gender].options[optIndex];
@@ -165,7 +165,7 @@ const Results = ({ results, options }: ResultsProps) => {
           <div className="comparison-chart">
             {options.map((option, optIndex) => (
               <div key={optIndex} className="comparison-row">
-                <div className="comparison-label">{option}</div>
+                <div className="comparison-label">{option.text}</div>
                 <div className="comparison-bars">
                   {ageGroups.map((age) => {
                     const pct = results.byAgeGroup![age].options[optIndex];

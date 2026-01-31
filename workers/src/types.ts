@@ -3,6 +3,7 @@ import type { Context } from 'hono';
 export interface Env {
   survey_db: D1Database;
   vibepulse_cache: KVNamespace;
+  vibepulse_images: R2Bucket;
   CLERK_SECRET_KEY: string;
   ENVIRONMENT: string;
   ALLOWED_ORIGINS: string;
@@ -111,10 +112,28 @@ export interface VoteCounts {
   byAgeGroup: Record<string, number[]>;
 }
 
+// Poll Option types (supports both text-only and image options)
+export interface PollOption {
+  text: string;
+  imageUrl?: string | null;
+}
+
+// Helper to normalize options from both old (string[]) and new (PollOption[]) formats
+export function normalizeOptions(options: (string | PollOption)[]): PollOption[] {
+  return options.map(opt =>
+    typeof opt === 'string' ? { text: opt, imageUrl: null } : opt
+  );
+}
+
+// Helper to get text array from options (for backwards compatibility)
+export function getOptionTexts(options: (string | PollOption)[]): string[] {
+  return options.map(opt => typeof opt === 'string' ? opt : opt.text);
+}
+
 // API request types
 export interface CreatePollBody {
   question: string;
-  options: string[];
+  options: (string | PollOption)[];  // supports both old and new formats
   category?: string;  // deprecated, use tags
   tags?: string[];    // hashtags (without #)
   expiresAt?: string;
@@ -140,9 +159,19 @@ export interface CommentRow {
   poll_id: string;
   user_id: string;
   content: string;
+  parent_comment_id: string | null;
+  like_count: number;
+  reply_count: number;
   created_at: string;
 }
 
 export interface CreateCommentBody {
   content: string;
+  parentCommentId?: string;
+}
+
+export interface CommentLikeRow {
+  comment_id: string;
+  user_id: string;
+  created_at: string;
 }

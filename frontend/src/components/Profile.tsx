@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useProfile, useUpdateProfile, useMyPolls, useMyVotes } from '../hooks/useProfile';
 import { apiClient, type SimilarityStats, type XpStats, type PersonalityAnalysis } from '../lib/api';
+import StatisticsPanel from './StatisticsPanel';
 import type { UpdateProfileRequest, Poll } from '../types';
 
-type TabType = 'personality' | 'xp' | 'settings' | 'myPolls' | 'myVotes' | 'similarity';
+type TabType = 'personality' | 'xp' | 'statistics' | 'settings' | 'myPolls' | 'myVotes' | 'similarity';
 
 const ProfileSettings = () => {
   const { data: profileData, isLoading } = useProfile();
@@ -514,6 +515,12 @@ const Profile = () => {
           내 성향
         </button>
         <button
+          className={`profile-tab ${activeTab === 'statistics' ? 'active' : ''}`}
+          onClick={() => setActiveTab('statistics')}
+        >
+          통계
+        </button>
+        <button
           className={`profile-tab ${activeTab === 'xp' ? 'active' : ''}`}
           onClick={() => setActiveTab('xp')}
         >
@@ -546,6 +553,7 @@ const Profile = () => {
       </div>
 
       {activeTab === 'personality' && <PersonalityPanel />}
+      {activeTab === 'statistics' && <StatisticsPanel />}
       {activeTab === 'xp' && <XpPanel />}
       {activeTab === 'similarity' && <SimilarityPanel />}
       {activeTab === 'settings' && <ProfileSettings />}

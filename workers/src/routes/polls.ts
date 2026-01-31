@@ -1,9 +1,16 @@
 import { Hono } from 'hono';
-import type { Env, Variables, PollRow, CreatePollBody, VoteBody, UserProfileRow } from '../types';
+import type { Env, Variables, PollRow, CreatePollBody, VoteBody, UserProfileRow, PollOption } from '../types';
+import { normalizeOptions, getOptionTexts } from '../types';
 import { requireAuth, optionalAuth } from '../middleware/auth';
 import { incrementVoteCount, getVoteCounts, initCounts, formatResults } from '../utils/kv';
 import { error, success } from '../utils/response';
 import { addVoteXp, addPollCreationXp } from '../utils/xp';
+
+// Helper to parse and normalize options from DB
+function parseOptions(optionsJson: string): PollOption[] {
+  const parsed = JSON.parse(optionsJson);
+  return normalizeOptions(parsed);
+}
 
 const polls = new Hono<{ Bindings: Env; Variables: Variables }>();
 
@@ -134,7 +141,7 @@ polls.get('/', async (c) => {
 
     // Calculate percentages for each poll
     for (const pollRow of items) {
-      const options = JSON.parse(pollRow.options) as string[];
+      const options = parseOptions(pollRow.options);
       const counts = voteCounts[pollRow.id] || {};
       const total = pollRow.response_count || 0;
 
@@ -151,7 +158,7 @@ polls.get('/', async (c) => {
     id: row.id,
     creatorId: row.creator_id,
     question: row.question,
-    options: JSON.parse(row.options),
+    options: parseOptions(row.options),
     category: row.category,
     tags: tagsMap[row.id] || [],
     expiresAt: row.expires_at,
@@ -176,7 +183,7 @@ polls.get('/:id', async (c) => {
     return error(c, 'POLL_NOT_FOUND', '설문을 찾을 수 없습니다', 404);
   }
 
-  const options = JSON.parse(poll.options) as string[];
+  const options = parseOptions(poll.options);
 
   // Get vote counts from KV (or compute from D1)
   let counts = await getVoteCounts(c.env.vibepulse_cache, id);
@@ -225,9 +232,24 @@ polls.post('/', requireAuth, async (c) => {
     return error(c, 'INVALID_INPUT', '옵션은 2~4개여야 합니다', 400);
   }
 
-  const options = body.options.map((o) => o?.trim()).filter(Boolean);
+  // Normalize options to PollOption format and validate
+  const normalizedOptions = normalizeOptions(body.options);
+  const options = normalizedOptions
+    .map((o) => ({
+      text: o.text?.trim() || '',
+      imageUrl: o.imageUrl || null,
+    }))
+    .filter((o) => o.text);
+
   if (options.length < 2) {
     return error(c, 'INVALID_INPUT', '유효한 옵션이 2개 이상 필요합니다', 400);
+  }
+
+  // Validate image URLs (must be from our API or null)
+  for (const opt of options) {
+    if (opt.imageUrl && !opt.imageUrl.startsWith('/api/images/')) {
+      return error(c, 'INVALID_IMAGE_URL', '잘못된 이미지 URL입니다', 400);
+    }
   }
 
   // Validate and clean tags
@@ -321,7 +343,7 @@ polls.post('/:id/vote', optionalAuth, async (c) => {
     return error(c, 'POLL_NOT_FOUND', '설문을 찾을 수 없습니다', 404);
   }
 
-  const options = JSON.parse(poll.options) as string[];
+  const options = parseOptions(poll.options);
   if (body.optionIndex < 0 || body.optionIndex >= options.length) {
     return error(c, 'INVALID_INPUT', '유효하지 않은 옵션입니다', 400);
   }

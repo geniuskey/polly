@@ -1,5 +1,14 @@
-import { useState } from 'react';
-import { useComments, useCreateComment, useUpdateComment, useDeleteComment } from '../hooks/useComments';
+import { useState, useEffect } from 'react';
+import {
+  useComments,
+  useCreateComment,
+  useUpdateComment,
+  useDeleteComment,
+  useLikeComment,
+  useUnlikeComment,
+  useCommentReplies,
+  useCreateReply,
+} from '../hooks/useComments';
 import { generateAnonymousName } from '../lib/anonymousName';
 import type { Comment } from '../types';
 
@@ -26,6 +35,133 @@ const formatTimeAgo = (dateStr: string): string => {
   return new Date(dateStr).toLocaleDateString('ko-KR');
 };
 
+// Reply form component
+const ReplyForm = ({
+  pollId,
+  parentCommentId,
+  onCancel,
+  onSuccess,
+}: {
+  pollId: string;
+  parentCommentId: string;
+  onCancel: () => void;
+  onSuccess: () => void;
+}) => {
+  const [content, setContent] = useState('');
+  const { mutateAsync: createReply, isPending } = useCreateReply(pollId, parentCommentId);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = content.trim();
+    if (!trimmed || isPending) return;
+
+    try {
+      await createReply({ content: trimmed });
+      setContent('');
+      onSuccess();
+    } catch {
+      alert('답글 등록에 실패했습니다.');
+    }
+  };
+
+  return (
+    <form className="reply-form" onSubmit={handleSubmit}>
+      <textarea
+        className="comment-input reply-input"
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        placeholder="답글을 입력하세요 (최대 500자)"
+        maxLength={500}
+        rows={2}
+        autoFocus
+      />
+      <div className="reply-form-footer">
+        <span className="comment-char-count">{content.length}/500</span>
+        <button type="button" className="comment-cancel" onClick={onCancel} disabled={isPending}>
+          취소
+        </button>
+        <button type="submit" className="comment-submit" disabled={!content.trim() || isPending}>
+          {isPending ? '등록 중...' : '답글 등록'}
+        </button>
+      </div>
+    </form>
+  );
+};
+
+// Replies list component
+const RepliesList = ({
+  pollId,
+  parentCommentId,
+  currentUserId,
+  onEdit,
+  onDelete,
+  isUpdating,
+  isDeleting,
+}: {
+  pollId: string;
+  parentCommentId: string;
+  currentUserId?: string;
+  onEdit: (id: string, content: string) => void;
+  onDelete: (id: string) => void;
+  isUpdating: boolean;
+  isDeleting: boolean;
+}) => {
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
+    useCommentReplies(pollId, parentCommentId);
+  const { mutateAsync: likeComment } = useLikeComment(pollId);
+  const { mutateAsync: unlikeComment } = useUnlikeComment(pollId);
+
+  const replies = data?.pages.flatMap((page) => page.replies) ?? [];
+
+  const handleToggleLike = async (comment: Comment) => {
+    if (!currentUserId) return;
+    try {
+      if (comment.hasLiked) {
+        await unlikeComment(comment.id);
+      } else {
+        await likeComment(comment.id);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  if (isLoading) {
+    return <div className="replies-loading">답글을 불러오는 중...</div>;
+  }
+
+  if (replies.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="replies-list">
+      {replies.map((reply) => (
+        <CommentItem
+          key={reply.id}
+          comment={reply}
+          currentUserId={currentUserId}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          isUpdating={isUpdating}
+          isDeleting={isDeleting}
+          onToggleLike={() => handleToggleLike(reply)}
+          isReply
+        />
+      ))}
+      {hasNextPage && (
+        <button
+          className="replies-load-more"
+          onClick={() => fetchNextPage()}
+          disabled={isFetchingNextPage}
+        >
+          {isFetchingNextPage ? '불러오는 중...' : '더 많은 답글 보기'}
+        </button>
+      )}
+    </div>
+  );
+};
+
 const CommentItem = ({
   comment,
   currentUserId,
@@ -33,6 +169,9 @@ const CommentItem = ({
   onDelete,
   isUpdating,
   isDeleting,
+  onToggleLike,
+  pollId,
+  isReply = false,
 }: {
   comment: Comment;
   currentUserId?: string;
@@ -40,9 +179,14 @@ const CommentItem = ({
   onDelete: (id: string) => void;
   isUpdating: boolean;
   isDeleting: boolean;
+  onToggleLike: () => void;
+  pollId?: string;
+  isReply?: boolean;
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
+  const [showReplies, setShowReplies] = useState(false);
+  const [showReplyForm, setShowReplyForm] = useState(false);
 
   const isOwner = currentUserId && comment.userId === currentUserId;
 
@@ -64,7 +208,7 @@ const CommentItem = ({
 
   if (isEditing) {
     return (
-      <div className="comment-item editing">
+      <div className={`comment-item editing ${isReply ? 'reply-item' : ''}`}>
         <textarea
           className="comment-edit-input"
           value={editContent}
@@ -95,7 +239,7 @@ const CommentItem = ({
   }
 
   return (
-    <div className="comment-item">
+    <div className={`comment-item ${isReply ? 'reply-item' : ''}`}>
       <div className="comment-header">
         <span className="comment-author">
           {generateAnonymousName(comment.clerkId)}
@@ -121,25 +265,105 @@ const CommentItem = ({
         )}
       </div>
       <p className="comment-content">{comment.content}</p>
+      <div className="comment-footer">
+        <button
+          className={`comment-like-btn ${comment.hasLiked ? 'liked' : ''}`}
+          onClick={onToggleLike}
+          disabled={!currentUserId}
+          title={currentUserId ? (comment.hasLiked ? '좋아요 취소' : '좋아요') : '로그인이 필요합니다'}
+        >
+          <span className="like-icon">{comment.hasLiked ? '❤️' : '🤍'}</span>
+          <span className="like-count">{comment.likeCount > 0 ? comment.likeCount : ''}</span>
+        </button>
+        {!isReply && pollId && (
+          <>
+            {comment.replyCount > 0 && (
+              <button
+                className="comment-replies-toggle"
+                onClick={() => setShowReplies(!showReplies)}
+              >
+                {showReplies ? '답글 접기' : `답글 ${comment.replyCount}개 보기`}
+              </button>
+            )}
+            {currentUserId && (
+              <button
+                className="comment-reply-btn"
+                onClick={() => setShowReplyForm(!showReplyForm)}
+              >
+                답글
+              </button>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Reply form */}
+      {!isReply && showReplyForm && pollId && currentUserId && (
+        <ReplyForm
+          pollId={pollId}
+          parentCommentId={comment.id}
+          onCancel={() => setShowReplyForm(false)}
+          onSuccess={() => {
+            setShowReplyForm(false);
+            setShowReplies(true);
+          }}
+        />
+      )}
+
+      {/* Replies */}
+      {!isReply && showReplies && pollId && (
+        <RepliesList
+          pollId={pollId}
+          parentCommentId={comment.id}
+          currentUserId={currentUserId}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          isUpdating={isUpdating}
+          isDeleting={isDeleting}
+        />
+      )}
     </div>
   );
 };
 
 const Comments = ({ pollId, currentUserId }: CommentsProps) => {
   const [newComment, setNewComment] = useState('');
+  const [isTabVisible, setIsTabVisible] = useState(true);
+
+  // 30 second polling when tab is visible
   const {
     data,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
     isLoading,
-  } = useComments(pollId);
+    refetch,
+  } = useComments(pollId, isTabVisible ? 30000 : undefined);
+
   const { mutateAsync: createComment, isPending: isCreating } =
     useCreateComment(pollId);
   const { mutateAsync: updateComment, isPending: isUpdating } =
     useUpdateComment(pollId);
   const { mutateAsync: deleteComment, isPending: isDeleting } =
     useDeleteComment(pollId);
+  const { mutateAsync: likeComment } = useLikeComment(pollId);
+  const { mutateAsync: unlikeComment } = useUnlikeComment(pollId);
+
+  // Refetch on tab focus
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      const visible = document.visibilityState === 'visible';
+      setIsTabVisible(visible);
+      if (visible) {
+        refetch();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [refetch]);
 
   const comments = data?.pages.flatMap((page) => page.comments) ?? [];
 
@@ -170,6 +394,19 @@ const Comments = ({ pollId, currentUserId }: CommentsProps) => {
       await deleteComment(commentId);
     } catch {
       alert('댓글 삭제에 실패했습니다.');
+    }
+  };
+
+  const handleToggleLike = async (comment: Comment) => {
+    if (!currentUserId) return;
+    try {
+      if (comment.hasLiked) {
+        await unlikeComment(comment.id);
+      } else {
+        await likeComment(comment.id);
+      }
+    } catch {
+      // ignore
     }
   };
 
@@ -218,6 +455,8 @@ const Comments = ({ pollId, currentUserId }: CommentsProps) => {
             onDelete={handleDelete}
             isUpdating={isUpdating}
             isDeleting={isDeleting}
+            onToggleLike={() => handleToggleLike(comment)}
+            pollId={pollId}
           />
         ))}
       </div>

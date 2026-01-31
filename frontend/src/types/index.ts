@@ -2,6 +2,11 @@
 // Data Models
 // ============================================
 
+export interface PollOption {
+  text: string;
+  imageUrl?: string | null;
+}
+
 export interface PollResultsSummary {
   total: number;
   percentages: number[];
@@ -11,7 +16,7 @@ export interface Poll {
   id: string;
   creatorId: string | null;
   question: string;
-  options: string[];
+  options: PollOption[];
   category: string | null;
   tags: string[];
   expiresAt: string | null;
@@ -57,7 +62,7 @@ export interface Category {
 
 export interface CreatePollRequest {
   question: string;
-  options: string[];
+  options: (string | PollOption)[];  // supports both text-only and image options
   category?: string;  // deprecated
   tags?: string[];
   expiresAt?: string;
@@ -101,7 +106,8 @@ export interface VoteResult {
   byAgeGroup?: Record<string, SegmentResult>;
 }
 
-export interface PollDetail extends Omit<Poll, 'results'> {
+export interface PollDetail extends Omit<Poll, 'results' | 'options'> {
+  options: PollOption[];
   results: VoteResult;
   myVote?: number | null;
 }
@@ -139,6 +145,10 @@ export interface Comment {
   userId: string;
   clerkId: string;
   content: string;
+  parentCommentId: string | null;
+  likeCount: number;
+  replyCount: number;
+  hasLiked: boolean;
   createdAt: string;
 }
 
@@ -147,6 +157,17 @@ export interface CommentListResponse {
   nextCursor: string | null;
 }
 
+export interface CommentRepliesResponse {
+  replies: Comment[];
+  nextCursor: string | null;
+}
+
 export interface CreateCommentRequest {
   content: string;
+  parentCommentId?: string;
+}
+
+export interface LikeCommentResponse {
+  liked: boolean;
+  likeCount: number;
 }

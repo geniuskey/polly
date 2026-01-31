@@ -110,33 +110,43 @@ const PollDetailPage = () => {
 
         <h2 className="poll-question">{poll.question}</h2>
 
-        <div className="poll-options">
-          {poll.options.map((option, index) => (
-            <button
-              key={index}
-              className={`poll-option ${hasVoted ? 'voted' : ''} ${effectiveSelected === index ? 'selected' : ''} ${justVoted && effectiveSelected === index ? 'just-voted' : ''}`}
-              onClick={() => handleVote(index)}
-              disabled={hasVoted || isPending || isExpired}
-            >
-              <span className="option-text">
-                {effectiveSelected === index && hasVoted && (
-                  <span className="my-vote-badge">내 선택</span>
+        <div className={`poll-options ${poll.options.some(o => o.imageUrl) ? 'with-images' : ''}`}>
+          {poll.options.map((option, index) => {
+            const hasImage = !!option.imageUrl;
+            return (
+              <button
+                key={index}
+                className={`poll-option ${hasVoted ? 'voted' : ''} ${effectiveSelected === index ? 'selected' : ''} ${justVoted && effectiveSelected === index ? 'just-voted' : ''} ${hasImage ? 'has-image' : ''}`}
+                onClick={() => handleVote(index)}
+                disabled={hasVoted || isPending || isExpired}
+              >
+                {/* Option image */}
+                {hasImage && (
+                  <div className="option-image">
+                    <img src={option.imageUrl!} alt={option.text} loading="lazy" />
+                  </div>
                 )}
-                {option}
-              </span>
-              {hasVoted && poll.results.options[index] && (
-                <div className="option-result">
-                  <div
-                    className="option-bar"
-                    style={{ width: `${poll.results.options[index].percentage}%` }}
-                  />
-                  <span className="option-percentage">
-                    {poll.results.options[index].percentage.toFixed(1)}%
-                  </span>
-                </div>
-              )}
-            </button>
-          ))}
+
+                <span className="option-text">
+                  {effectiveSelected === index && hasVoted && (
+                    <span className="my-vote-badge">내 선택</span>
+                  )}
+                  {option.text}
+                </span>
+                {hasVoted && poll.results.options[index] && (
+                  <div className="option-result">
+                    <div
+                      className="option-bar"
+                      style={{ width: `${poll.results.options[index].percentage}%` }}
+                    />
+                    <span className="option-percentage">
+                      {poll.results.options[index].percentage.toFixed(1)}%
+                    </span>
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
