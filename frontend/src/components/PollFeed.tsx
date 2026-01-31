@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { usePolls } from '../hooks/usePolls';
 import PollCard from './PollCard';
 import SwipeableCardStack from './SwipeableCardStack';
+import TrendingSection from './TrendingSection';
 import { FeedSkeleton } from './Skeleton';
 import { hasVoted } from '../lib/voteStorage';
 
@@ -50,6 +51,8 @@ const PollFeed = () => {
 
   return (
     <div className="poll-feed">
+      <TrendingSection />
+
       <div className="feed-controls">
         <div className="feed-actions">
           <div className="feed-left-actions">

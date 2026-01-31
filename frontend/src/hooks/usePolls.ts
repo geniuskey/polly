@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '../lib/api';
+import { apiClient, type RankingResponse } from '../lib/api';
 import type { CreatePollRequest, VoteRequest } from '../types';
 
 export const usePolls = (tag?: string, sort?: string) => {
@@ -57,5 +57,17 @@ export const useVote = (pollId: string) => {
       queryClient.invalidateQueries({ queryKey: ['poll', pollId] });
       queryClient.invalidateQueries({ queryKey: ['polls'] });
     },
+  });
+};
+
+export const useTrending = (
+  type: 'popular' | 'rising' | 'controversial' = 'rising',
+  period: 'day' | 'week' | 'month' | 'all' = 'day',
+  limit: number = 5
+) => {
+  return useQuery<{ data: RankingResponse }>({
+    queryKey: ['trending', type, period, limit],
+    queryFn: () => apiClient.getRanking({ type, period, limit }),
+    staleTime: 1000 * 60 * 2, // Cache for 2 minutes
   });
 };

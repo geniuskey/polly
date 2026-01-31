@@ -2,6 +2,11 @@
 // Data Models
 // ============================================
 
+export interface PollResultsSummary {
+  total: number;
+  percentages: number[];
+}
+
 export interface Poll {
   id: string;
   creatorId: string | null;
@@ -13,6 +18,7 @@ export interface Poll {
   isActive: boolean;
   createdAt: string;
   responseCount: number;
+  results?: PollResultsSummary;
 }
 
 export interface PollResponse {
@@ -95,7 +101,7 @@ export interface VoteResult {
   byAgeGroup?: Record<string, SegmentResult>;
 }
 
-export interface PollDetail extends Poll {
+export interface PollDetail extends Omit<Poll, 'results'> {
   results: VoteResult;
   myVote?: number | null;
 }

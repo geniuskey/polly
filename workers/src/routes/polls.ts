@@ -95,9 +95,12 @@ polls.get('/', async (c) => {
   // Fetch tags for each poll
   const pollIds = items.map(row => row.id);
   const tagsMap: Record<string, string[]> = {};
+  const resultsMap: Record<string, { total: number; percentages: number[] }> = {};
 
   if (pollIds.length > 0) {
     const placeholders = pollIds.map(() => '?').join(',');
+
+    // Fetch tags
     const tagsResult = await c.env.survey_db.prepare(
       `SELECT pt.poll_id, t.name
        FROM poll_tags pt
@@ -110,6 +113,37 @@ polls.get('/', async (c) => {
         tagsMap[row.poll_id] = [];
       }
       tagsMap[row.poll_id].push(row.name);
+    }
+
+    // Fetch vote counts per option for results preview
+    const votesResult = await c.env.survey_db.prepare(
+      `SELECT poll_id, option_index, COUNT(*) as count
+       FROM responses
+       WHERE poll_id IN (${placeholders})
+       GROUP BY poll_id, option_index`
+    ).bind(...pollIds).all<{ poll_id: string; option_index: number; count: number }>();
+
+    // Build results map
+    const voteCounts: Record<string, Record<number, number>> = {};
+    for (const row of votesResult.results || []) {
+      if (!voteCounts[row.poll_id]) {
+        voteCounts[row.poll_id] = {};
+      }
+      voteCounts[row.poll_id][row.option_index] = row.count;
+    }
+
+    // Calculate percentages for each poll
+    for (const pollRow of items) {
+      const options = JSON.parse(pollRow.options) as string[];
+      const counts = voteCounts[pollRow.id] || {};
+      const total = pollRow.response_count || 0;
+
+      const percentages = options.map((_, i) => {
+        const count = counts[i] || 0;
+        return total > 0 ? Math.round((count / total) * 100) : 0;
+      });
+
+      resultsMap[pollRow.id] = { total, percentages };
     }
   }
 
@@ -124,6 +158,7 @@ polls.get('/', async (c) => {
     isActive: !!row.is_active,
     createdAt: row.created_at,
     responseCount: row.response_count,
+    results: resultsMap[row.id] || { total: 0, percentages: [] },
   }));
 
   return c.json({ polls: pollList, nextCursor });
