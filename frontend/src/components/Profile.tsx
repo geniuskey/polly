@@ -237,11 +237,23 @@ const PersonalityPanel = () => {
   const analysis = data?.data as PersonalityAnalysis;
 
   if (!analysis.hasData) {
+    const progress = analysis.totalVotes && analysis.requiredVotes
+      ? Math.round((analysis.totalVotes / analysis.requiredVotes) * 100)
+      : 0;
+
     return (
       <div className="personality-panel">
         <div className="personality-empty">
           <div className="empty-icon">🎯</div>
           <p>{analysis.message}</p>
+          {analysis.totalVotes !== undefined && analysis.requiredVotes && (
+            <div className="personality-progress">
+              <div className="progress-bar">
+                <div className="progress-fill" style={{ width: `${progress}%` }} />
+              </div>
+              <span className="progress-text">{analysis.totalVotes} / {analysis.requiredVotes}</span>
+            </div>
+          )}
           <Link to="/" className="go-vote-btn">투표하러 가기</Link>
         </div>
       </div>
@@ -251,23 +263,65 @@ const PersonalityPanel = () => {
   const dimensions = analysis.dimensions!;
   const type = analysis.type!;
 
-  const dimensionLabels = [
-    { key: 'conformity', label: '다수파', lowLabel: '독립파', value: dimensions.conformity },
-    { key: 'decisive', label: '확신형', lowLabel: '신중형', value: dimensions.decisive },
-    { key: 'earlyBird', label: '선구자', lowLabel: '관망자', value: dimensions.earlyBird },
-    { key: 'engagement', label: '열정러', lowLabel: '여유러', value: dimensions.engagement },
-    { key: 'diversity', label: '탐험가', lowLabel: '전문가', value: dimensions.diversity },
+  // 4차원 MBTI 스타일 배열
+  const dimensionList = [
+    { key: 'mi', ...dimensions.mi },
+    { key: 'fc', ...dimensions.fc },
+    { key: 'el', ...dimensions.el },
+    { key: 'wd', ...dimensions.wd },
   ];
 
   return (
     <div className="personality-panel">
-      {/* Type Card */}
-      <div className="personality-type-card">
-        <div className="type-emoji">{type.emoji}</div>
-        <div className="type-info">
-          <h3 className="type-name">{type.name}</h3>
-          <p className="type-description">{type.description}</p>
+      {/* MBTI Type Card */}
+      <div className="personality-type-card mbti-style">
+        <div className="type-code-badge">{type.code}</div>
+        <div className="type-main">
+          <div className="type-emoji">{type.emoji}</div>
+          <div className="type-info">
+            <h3 className="type-name">{type.name}</h3>
+            <p className="type-title">{type.title}</p>
+          </div>
         </div>
+        <p className="type-description">{type.description}</p>
+        {type.traits && (
+          <div className="type-traits">
+            {type.traits.map((trait, i) => (
+              <span key={i} className="trait-tag">{trait}</span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 4 Dimensions */}
+      <div className="personality-dimensions mbti-dimensions">
+        <h4>4차원 성향 분석</h4>
+        {dimensionList.map((dim) => (
+          <div key={dim.key} className="dimension-row">
+            <div className="dimension-labels">
+              <span className={`dimension-label ${dim.score < 50 ? 'active' : ''}`}>
+                {dim.lowLabel}
+              </span>
+              <span className="dimension-letter">{dim.letter}</span>
+              <span className={`dimension-label ${dim.score >= 50 ? 'active' : ''}`}>
+                {dim.highLabel}
+              </span>
+            </div>
+            <div className="dimension-bar-container">
+              <div className="dimension-bar">
+                <div
+                  className="dimension-fill"
+                  style={{ width: `${dim.score}%` }}
+                />
+                <div
+                  className="dimension-marker"
+                  style={{ left: `${dim.score}%` }}
+                />
+              </div>
+              <span className="dimension-score">{dim.score}%</span>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Summary Stats */}
@@ -284,29 +338,6 @@ const PersonalityPanel = () => {
           <span className="summary-value">{analysis.totalVotes}</span>
           <span className="summary-label">총 투표</span>
         </div>
-      </div>
-
-      {/* Dimension Bars */}
-      <div className="personality-dimensions">
-        <h4>성향 분석</h4>
-        {dimensionLabels.map((dim) => (
-          <div key={dim.key} className="dimension-row">
-            <span className="dimension-low-label">{dim.lowLabel}</span>
-            <div className="dimension-bar-container">
-              <div className="dimension-bar">
-                <div
-                  className="dimension-fill"
-                  style={{ width: `${dim.value}%` }}
-                />
-                <div
-                  className="dimension-marker"
-                  style={{ left: `${dim.value}%` }}
-                />
-              </div>
-            </div>
-            <span className="dimension-high-label">{dim.label}</span>
-          </div>
-        ))}
       </div>
 
       {/* Recent Polls */}

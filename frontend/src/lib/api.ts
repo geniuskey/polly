@@ -357,20 +357,30 @@ export interface XpStats {
   history: XpHistoryEntry[];
 }
 
-// Personality Analysis types
+// Personality Analysis types (MBTI-style 4 dimensions, 16 types)
 export interface PersonalityType {
-  code: string;
-  name: string;
+  code: string;      // e.g., "MFEW", "ICLD"
+  name: string;      // e.g., "트렌드 서퍼", "외길 장인"
   emoji: string;
+  title: string;     // e.g., "대세를 타는 만능 참여러"
   description: string;
+  traits: string[];  // e.g., ["트렌드에 민감", "적극적 참여"]
+}
+
+export interface PersonalityDimension {
+  score: number;
+  letter: string;    // M/I, F/C, E/L, W/D
+  label: string;     // e.g., "다수파", "소수파"
+  name: string;      // e.g., "다수파 ↔ 소수파"
+  lowLabel: string;  // e.g., "소수파"
+  highLabel: string; // e.g., "다수파"
 }
 
 export interface PersonalityDimensions {
-  conformity: number;    // 다수파 ↔ 독립파
-  decisive: number;      // 확신적 ↔ 신중한
-  earlyBird: number;     // 선구자 ↔ 관망자
-  engagement: number;    // 적극적 ↔ 여유로운
-  diversity: number;     // 다양한 ↔ 집중적
+  mi: PersonalityDimension;  // Mainstream vs Independent
+  fc: PersonalityDimension;  // Fast vs Careful
+  el: PersonalityDimension;  // Early vs Late
+  wd: PersonalityDimension;  // Wide vs Deep
 }
 
 export interface RecentPollMatch {
@@ -383,6 +393,7 @@ export interface RecentPollMatch {
 export interface PersonalityAnalysis {
   hasData: boolean;
   totalVotes?: number;
+  requiredVotes?: number;
   message?: string;
   type?: PersonalityType;
   dimensions?: PersonalityDimensions;

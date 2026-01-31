@@ -360,7 +360,7 @@ users.post('/similarity/check', async (c) => {
   });
 });
 
-// GET /api/users/me/personality - 투표 성향 분석
+// GET /api/users/me/personality - 투표 성향 분석 (MBTI 스타일 4차원 16유형)
 users.get('/me/personality', async (c) => {
   const userId = c.get('userId')!;
 
@@ -384,16 +384,19 @@ users.get('/me/personality', async (c) => {
   ).bind(fingerprint).first<{ count: number }>();
   const totalVotes = totalVotesResult?.count || 0;
 
-  if (totalVotes < 5) {
+  if (totalVotes < 10) {
     return success(c, {
       hasData: false,
       totalVotes,
-      message: `5개 이상 투표하면 성향을 분석해드려요! (현재 ${totalVotes}개)`,
+      requiredVotes: 10,
+      message: `10개 이상 투표하면 성향을 분석해드려요! (현재 ${totalVotes}개)`,
     });
   }
 
-  // 1. Conformity Score (다수파 지수) - How often user votes with majority
-  const majorityMatchResult = await c.env.survey_db.prepare(`
+  // ========== 4차원 MBTI 스타일 분석 ==========
+
+  // 1. M/I: Mainstream vs Independent (다수파 vs 소수파)
+  const majorityResult = await c.env.survey_db.prepare(`
     WITH poll_winners AS (
       SELECT poll_id, option_index,
         RANK() OVER (PARTITION BY poll_id ORDER BY COUNT(*) DESC) as rank
@@ -408,36 +411,21 @@ users.get('/me/personality', async (c) => {
     WHERE r.fingerprint = ?
   `).bind(fingerprint).first<{ total: number; with_majority: number }>();
 
-  const conformityScore = majorityMatchResult && majorityMatchResult.total > 0
-    ? Math.round((majorityMatchResult.with_majority / majorityMatchResult.total) * 100)
+  const mainstreamScore = majorityResult && majorityResult.total > 0
+    ? Math.round((majorityResult.with_majority / majorityResult.total) * 100)
     : 50;
 
-  // 2. Decisiveness Score (확신 지수) - Do they pick dominant options or underdogs
-  const decisiveResult = await c.env.survey_db.prepare(`
-    WITH option_percentages AS (
-      SELECT r.poll_id, r.option_index,
-        COUNT(*) * 100.0 / (SELECT COUNT(*) FROM responses r2 WHERE r2.poll_id = r.poll_id) as pct
-      FROM responses r
-      GROUP BY r.poll_id, r.option_index
-    )
-    SELECT AVG(op.pct) as avg_option_popularity
-    FROM responses r
-    JOIN option_percentages op ON r.poll_id = op.poll_id AND r.option_index = op.option_index
-    WHERE r.fingerprint = ?
-  `).bind(fingerprint).first<{ avg_option_popularity: number }>();
-
-  const decisiveScore = decisiveResult?.avg_option_popularity
-    ? Math.round(decisiveResult.avg_option_popularity)
-    : 50;
-
-  // 3. Early Bird Score (선구자 지수) - Do they vote early in poll lifecycle
-  const earlyBirdResult = await c.env.survey_db.prepare(`
+  // 2. F/C: Fast vs Careful (즉흥 vs 신중) - 투표 참여 속도 기반
+  const speedResult = await c.env.survey_db.prepare(`
     SELECT AVG(
       CASE
-        WHEN total_responses <= 1 THEN 100
-        ELSE (1.0 - (my_rank - 1.0) / total_responses) * 100
+        WHEN total_responses <= 3 THEN 100
+        WHEN my_rank <= total_responses * 0.3 THEN 80
+        WHEN my_rank <= total_responses * 0.5 THEN 60
+        WHEN my_rank <= total_responses * 0.7 THEN 40
+        ELSE 20
       END
-    ) as avg_early_score
+    ) as avg_speed_score
     FROM (
       SELECT r.poll_id,
         (SELECT COUNT(*) FROM responses r2 WHERE r2.poll_id = r.poll_id AND r2.created_at <= r.created_at) as my_rank,
@@ -445,24 +433,38 @@ users.get('/me/personality', async (c) => {
       FROM responses r
       WHERE r.fingerprint = ?
     )
-  `).bind(fingerprint).first<{ avg_early_score: number }>();
+  `).bind(fingerprint).first<{ avg_speed_score: number }>();
 
-  const earlyBirdScore = earlyBirdResult?.avg_early_score
-    ? Math.round(earlyBirdResult.avg_early_score)
+  const fastScore = speedResult?.avg_speed_score
+    ? Math.round(speedResult.avg_speed_score)
     : 50;
 
-  // 4. Engagement Score (적극성 지수) - Based on voting frequency
-  const daysSinceFirst = await c.env.survey_db.prepare(`
-    SELECT julianday('now') - julianday(MIN(created_at)) as days
-    FROM responses WHERE fingerprint = ?
-  `).bind(fingerprint).first<{ days: number }>();
+  // 3. E/L: Early vs Late (얼리버드 vs 후발주자) - 설문 생성 후 얼마나 빨리 참여하는지
+  const earlyResult = await c.env.survey_db.prepare(`
+    SELECT AVG(
+      CASE
+        WHEN hours_after <= 1 THEN 100
+        WHEN hours_after <= 6 THEN 85
+        WHEN hours_after <= 24 THEN 70
+        WHEN hours_after <= 72 THEN 50
+        WHEN hours_after <= 168 THEN 30
+        ELSE 15
+      END
+    ) as avg_early_score
+    FROM (
+      SELECT
+        (julianday(r.created_at) - julianday(p.created_at)) * 24 as hours_after
+      FROM responses r
+      JOIN polls p ON r.poll_id = p.id
+      WHERE r.fingerprint = ?
+    )
+  `).bind(fingerprint).first<{ avg_early_score: number }>();
 
-  const days = Math.max(daysSinceFirst?.days || 1, 1);
-  const votesPerDay = totalVotes / days;
-  // Normalize: 0.5 votes/day = 50%, 2+ votes/day = 100%
-  const engagementScore = Math.min(100, Math.round(votesPerDay * 50));
+  const earlyScore = earlyResult?.avg_early_score
+    ? Math.round(earlyResult.avg_early_score)
+    : 50;
 
-  // 5. Diversity Score (다양성 지수) - Votes across different tags/categories
+  // 4. W/D: Wide vs Deep (다양 vs 집중) - 참여 태그 다양성
   const diversityResult = await c.env.survey_db.prepare(`
     SELECT COUNT(DISTINCT t.id) as tag_count
     FROM responses r
@@ -471,20 +473,19 @@ users.get('/me/personality', async (c) => {
     WHERE r.fingerprint = ?
   `).bind(fingerprint).first<{ tag_count: number }>();
 
-  // Normalize: 5 tags = 50%, 15+ tags = 100%
-  const diversityScore = Math.min(100, Math.round((diversityResult?.tag_count || 0) * 6.67));
+  // Normalize: 3 tags = 30%, 10+ tags = 100%
+  const wideScore = Math.min(100, Math.round((diversityResult?.tag_count || 0) * 10));
 
-  // Generate personality type
+  // ========== 4글자 유형 코드 생성 ==========
   const dimensions = {
-    conformity: conformityScore,     // 다수파 ↔ 독립파
-    decisive: decisiveScore,         // 확신적 ↔ 신중한
-    earlyBird: earlyBirdScore,       // 선구자 ↔ 관망자
-    engagement: engagementScore,     // 적극적 ↔ 여유로운
-    diversity: diversityScore,       // 다양한 ↔ 집중적
+    mi: { score: mainstreamScore, letter: mainstreamScore >= 50 ? 'M' : 'I', label: mainstreamScore >= 50 ? '다수파' : '소수파' },
+    fc: { score: fastScore, letter: fastScore >= 50 ? 'F' : 'C', label: fastScore >= 50 ? '즉흥' : '신중' },
+    el: { score: earlyScore, letter: earlyScore >= 50 ? 'E' : 'L', label: earlyScore >= 50 ? '얼리버드' : '후발주자' },
+    wd: { score: wideScore, letter: wideScore >= 50 ? 'W' : 'D', label: wideScore >= 50 ? '다양' : '집중' },
   };
 
-  // Determine type based on dominant traits
-  const type = generatePersonalityType(dimensions);
+  const typeCode = `${dimensions.mi.letter}${dimensions.fc.letter}${dimensions.el.letter}${dimensions.wd.letter}`;
+  const type = getPersonalityType(typeCode);
 
   // Recent majority vs me
   const recentPollsResult = await c.env.survey_db.prepare(`
@@ -516,71 +517,164 @@ users.get('/me/personality', async (c) => {
     totalVotes: row.total_votes,
   }));
 
-  // Count recent matches
   const recentWithMajority = recentPolls.filter(p => p.withMajority).length;
 
   return success(c, {
     hasData: true,
     totalVotes,
     type,
-    dimensions,
+    dimensions: {
+      mi: { ...dimensions.mi, name: '다수파 ↔ 소수파', lowLabel: '소수파', highLabel: '다수파' },
+      fc: { ...dimensions.fc, name: '신중 ↔ 즉흥', lowLabel: '신중', highLabel: '즉흥' },
+      el: { ...dimensions.el, name: '후발주자 ↔ 얼리버드', lowLabel: '후발주자', highLabel: '얼리버드' },
+      wd: { ...dimensions.wd, name: '집중 ↔ 다양', lowLabel: '집중', highLabel: '다양' },
+    },
     recentPolls,
     summary: {
-      withMajority: conformityScore,
-      uniqueness: 100 - conformityScore,
+      withMajority: mainstreamScore,
+      uniqueness: 100 - mainstreamScore,
       recentMatch: `최근 10개 중 ${recentWithMajority}개 다수의견과 일치`,
     },
   });
 });
 
-function generatePersonalityType(dimensions: {
-  conformity: number;
-  decisive: number;
-  earlyBird: number;
-  engagement: number;
-  diversity: number;
-}): { code: string; name: string; emoji: string; description: string } {
-  const { conformity, decisive, earlyBird, engagement, diversity } = dimensions;
-
-  // Primary trait based on highest deviation from 50
-  const traits = [
-    { key: 'conformity', value: conformity, high: '다수파', low: '독립파' },
-    { key: 'decisive', value: decisive, high: '확신형', low: '신중형' },
-    { key: 'earlyBird', value: earlyBird, high: '선구자', low: '관망자' },
-    { key: 'engagement', value: engagement, high: '열정러', low: '여유러' },
-    { key: 'diversity', value: diversity, high: '탐험가', low: '전문가' },
-  ];
-
-  // Sort by deviation from 50 (most extreme first)
-  traits.sort((a, b) => Math.abs(b.value - 50) - Math.abs(a.value - 50));
-
-  const primary = traits[0];
-  const secondary = traits[1];
-
-  const primaryLabel = primary.value >= 50 ? primary.high : primary.low;
-  const secondaryLabel = secondary.value >= 50 ? secondary.high : secondary.low;
-
-  // Generate type descriptions
-  const types: Record<string, { emoji: string; description: string }> = {
-    '다수파': { emoji: '🤝', description: '대세를 따르는 현명한 선택!' },
-    '독립파': { emoji: '🦅', description: '나만의 소신을 지키는 당신' },
-    '확신형': { emoji: '💪', description: '명확한 선택을 하는 결단력의 소유자' },
-    '신중형': { emoji: '🤔', description: '신중하게 고민하는 사려깊은 투표러' },
-    '선구자': { emoji: '🚀', description: '남들보다 먼저 의견을 내는 개척자' },
-    '관망자': { emoji: '👀', description: '충분히 지켜본 후 결정하는 전략가' },
-    '열정러': { emoji: '🔥', description: '활발하게 참여하는 여론 주도자' },
-    '여유러': { emoji: '☕', description: '자신만의 페이스로 참여하는 여유파' },
-    '탐험가': { emoji: '🧭', description: '다양한 주제에 관심을 가진 호기심 대왕' },
-    '전문가': { emoji: '🎯', description: '관심 분야에 집중하는 스페셜리스트' },
+// 16가지 성향 유형 정의
+function getPersonalityType(code: string): {
+  code: string;
+  name: string;
+  emoji: string;
+  title: string;
+  description: string;
+  traits: string[];
+} {
+  const types: Record<string, { name: string; emoji: string; title: string; description: string; traits: string[] }> = {
+    // M (다수파) 계열 - 8가지
+    'MFEW': {
+      name: '트렌드 서퍼',
+      emoji: '🏄',
+      title: '대세를 타는 만능 참여러',
+      description: '빠르게 트렌드를 캐치하고 다양한 주제에 적극 참여해요. 어디서든 분위기를 읽고 대화에 자연스럽게 어울리는 타입!',
+      traits: ['트렌드에 민감', '적극적 참여', '폭넓은 관심사'],
+    },
+    'MFED': {
+      name: '핫이슈 헌터',
+      emoji: '🎯',
+      title: '인기 주제의 빠른 전문가',
+      description: '핫한 이슈를 누구보다 빠르게 파악하고 깊이 파고들어요. 관심 분야에서는 누구보다 정통한 정보통!',
+      traits: ['빠른 판단력', '깊은 몰입', '여론 선도'],
+    },
+    'MFLW': {
+      name: '느긋한 탐험가',
+      emoji: '🐢',
+      title: '여유롭게 세상을 둘러보는 탐험가',
+      description: '서두르지 않고 다양한 주제를 천천히 살펴봐요. 대세를 따르면서도 자신만의 페이스를 유지하는 여유파!',
+      traits: ['여유로운 참여', '다양한 관심', '균형잡힌 시각'],
+    },
+    'MFLD': {
+      name: '본진 지킴이',
+      emoji: '🏠',
+      title: '관심사에 충실한 팬심 보유자',
+      description: '좋아하는 분야에 꾸준히 관심을 가지고 참여해요. 한번 빠지면 끝까지 함께하는 진정한 팬!',
+      traits: ['꾸준한 관심', '충성도 높음', '깊은 애정'],
+    },
+    'MCEW': {
+      name: '분석형 얼리어답터',
+      emoji: '🔬',
+      title: '신중하지만 빠른 다재다능러',
+      description: '새로운 것을 빠르게 접하면서도 신중하게 판단해요. 다양한 분야의 지식을 쌓는 것을 즐기는 타입!',
+      traits: ['신중한 분석', '빠른 적응', '지적 호기심'],
+    },
+    'MCED': {
+      name: '전문 큐레이터',
+      emoji: '📚',
+      title: '깊이있는 콘텐츠 감별사',
+      description: '관심 분야의 콘텐츠를 꼼꼼히 살펴보고 참여해요. 해당 주제의 살아있는 백과사전!',
+      traits: ['꼼꼼한 분석', '전문성', '신뢰할 수 있는 의견'],
+    },
+    'MCLW': {
+      name: '신중한 관찰자',
+      emoji: '🦉',
+      title: '충분히 보고 현명하게 선택하는 현자',
+      description: '여러 의견을 충분히 살펴본 후 신중하게 선택해요. 다양한 관점을 이해하는 균형잡힌 판단자!',
+      traits: ['신중한 결정', '균형잡힌 시각', '현명한 판단'],
+    },
+    'MCLD': {
+      name: '깊이파 전문가',
+      emoji: '🎓',
+      title: '한 우물을 깊이 파는 스페셜리스트',
+      description: '관심 분야에 대해 깊이 고민하고 신중하게 의견을 내요. 해당 분야의 진정한 전문가!',
+      traits: ['깊은 전문성', '신중한 분석', '일관된 관심'],
+    },
+    // I (소수파) 계열 - 8가지
+    'IFEW': {
+      name: '힙스터',
+      emoji: '🎸',
+      title: '남다른 선택을 하는 개성파',
+      description: '대세와 다른 선택을 빠르게, 다양한 분야에서 해요. 독특한 취향과 넓은 관심사를 가진 개성 만점 타입!',
+      traits: ['독특한 취향', '빠른 행동력', '다양한 관심'],
+    },
+    'IFED': {
+      name: '숨은 보석 발굴단',
+      emoji: '💎',
+      title: '마이너의 가치를 아는 선구자',
+      description: '남들이 모르는 숨은 보석을 찾아내요. 관심 분야의 히든 젬을 발굴하는 안목의 소유자!',
+      traits: ['안목 있음', '선구안', '깊은 탐구'],
+    },
+    'IFLW': {
+      name: '자유로운 영혼',
+      emoji: '🦋',
+      title: '나만의 기준으로 사는 자유인',
+      description: '대세에 휩쓸리지 않고 다양한 분야를 자유롭게 탐험해요. 누구의 눈치도 보지 않는 진정한 자유인!',
+      traits: ['자유로운 선택', '넓은 시야', '독립적 성향'],
+    },
+    'IFLD': {
+      name: '나만의 길',
+      emoji: '🛤️',
+      title: '소신있게 한 길을 가는 독행자',
+      description: '관심 분야에서 남들과 다른 독자적인 관점을 가져요. 자기만의 철학이 확고한 타입!',
+      traits: ['확고한 소신', '독자적 관점', '깊은 몰입'],
+    },
+    'ICEW': {
+      name: '트렌드세터',
+      emoji: '⭐',
+      title: '새로운 흐름을 만드는 선구자',
+      description: '신중하게 판단하되 남들과 다른 선택으로 새 트렌드를 만들어요. 다양한 분야의 오피니언 리더!',
+      traits: ['선구자적 안목', '영향력', '넓은 식견'],
+    },
+    'ICED': {
+      name: '개척자',
+      emoji: '🚀',
+      title: '미개척 영역을 여는 탐험가',
+      description: '남들이 가지 않은 길을 신중하게 개척해요. 새로운 분야의 가능성을 발견하는 파이오니어!',
+      traits: ['개척 정신', '신중한 도전', '혁신적 사고'],
+    },
+    'ICLW': {
+      name: '현자',
+      emoji: '🧙',
+      title: '독립적 사고의 지혜로운 관찰자',
+      description: '다양한 관점에서 신중하게 독자적인 판단을 내려요. 깊은 통찰력을 가진 현명한 조언자!',
+      traits: ['깊은 통찰', '독립적 사고', '지혜로운 판단'],
+    },
+    'ICLD': {
+      name: '외길 장인',
+      emoji: '⚔️',
+      title: '자기 분야의 독보적 마스터',
+      description: '남들과 다른 시각으로 한 분야를 깊이 파고들어요. 해당 분야의 숨은 고수!',
+      traits: ['독보적 전문성', '장인 정신', '확고한 철학'],
+    },
   };
 
-  const primaryInfo = types[primaryLabel] || { emoji: '✨', description: '' };
+  const typeInfo = types[code] || {
+    name: '미지의 탐험가',
+    emoji: '🌟',
+    title: '아직 발견되지 않은 새로운 유형',
+    description: '당신만의 독특한 투표 패턴을 가지고 있어요!',
+    traits: ['독특함', '예측불가', '신비로움'],
+  };
 
   return {
-    code: `${primaryLabel}-${secondaryLabel}`,
-    name: `${primaryLabel} ${secondaryLabel}`,
-    emoji: primaryInfo.emoji,
-    description: primaryInfo.description,
+    code,
+    ...typeInfo,
   };
 }
 

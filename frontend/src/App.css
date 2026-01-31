@@ -1344,9 +1344,35 @@
 
 .personality-empty p {
   color: var(--color-text-secondary);
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
+.personality-progress {
+  max-width: 200px;
+  margin: 0 auto 1.5rem;
+}
+
+.personality-progress .progress-bar {
+  height: 8px;
+  background: var(--color-bg-secondary);
+  border-radius: 9999px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.personality-progress .progress-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 9999px;
+  transition: width 0.4s ease-out;
+}
+
+.personality-progress .progress-text {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+/* MBTI Style Type Card */
 .personality-type-card {
   display: flex;
   align-items: center;
@@ -1359,13 +1385,39 @@
   animation: scaleIn 0.4s ease-out;
 }
 
+.personality-type-card.mbti-style {
+  flex-direction: column;
+  align-items: stretch;
+  text-align: center;
+}
+
+.type-code-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  margin-bottom: 0.75rem;
+  align-self: center;
+}
+
+.type-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
 .type-emoji {
   font-size: 3rem;
   animation: bounce 1s ease-out;
 }
 
 .type-info {
-  flex: 1;
+  text-align: left;
 }
 
 .type-name {
@@ -1374,10 +1426,31 @@
   margin: 0 0 0.25rem 0;
 }
 
-.type-description {
+.type-title {
   font-size: 0.9rem;
   opacity: 0.9;
   margin: 0;
+}
+
+.type-description {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  margin: 0 0 1rem 0;
+  line-height: 1.5;
+}
+
+.type-traits {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.trait-tag {
+  padding: 0.25rem 0.75rem;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+  font-size: 0.8rem;
 }
 
 .personality-summary {
@@ -1432,6 +1505,64 @@
   color: var(--color-text);
 }
 
+/* MBTI Style 4 Dimensions */
+.mbti-dimensions .dimension-row {
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.mbti-dimensions .dimension-row:last-child {
+  margin-bottom: 0;
+}
+
+.dimension-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.dimension-label {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  transition: color 0.2s, font-weight 0.2s;
+}
+
+.dimension-label.active {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.dimension-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--color-primary);
+  color: white;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.mbti-dimensions .dimension-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.dimension-score {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  min-width: 40px;
+  text-align: right;
+}
+
+/* Legacy dimension styles */
 .dimension-row {
   display: flex;
   align-items: center;
@@ -1470,6 +1601,7 @@
   border-radius: 9999px;
   position: relative;
   overflow: visible;
+  flex: 1;
 }
 
 .dimension-fill {
