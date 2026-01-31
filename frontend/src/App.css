@@ -304,6 +304,19 @@
   transition: stroke 0.2s;
 }
 
+.nav-user-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.mobile-nav-item.active .nav-user-avatar {
+  border-color: var(--color-primary);
+}
+
 .mobile-nav-label {
   font-size: 0.65rem;
   font-weight: 500;

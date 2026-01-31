@@ -1,9 +1,10 @@
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   SignedIn,
   SignedOut,
   SignInButton,
   UserButton,
+  useUser,
 } from '@clerk/clerk-react';
 import { useTheme } from '../hooks/useTheme';
 import { useAdmin } from '../hooks/useAdmin';
@@ -84,13 +85,29 @@ const NAV_ITEMS = [
   { path: '/ranking', label: '랭킹', icon: IconTrophy },
   { path: '/explore', label: '탐색', icon: IconSearch },
   { path: '/create', label: '만들기', icon: IconPencil },
-  { path: '/profile', label: '프로필', icon: IconUser },
 ];
+
+// Profile icon with user avatar when signed in
+const ProfileNavIcon = () => {
+  const { user, isSignedIn } = useUser();
+
+  if (isSignedIn && user?.imageUrl) {
+    return (
+      <img
+        src={user.imageUrl}
+        alt="프로필"
+        className="nav-user-avatar"
+      />
+    );
+  }
+  return <IconUser />;
+};
 
 const Layout = () => {
   const { toggleTheme, isDark } = useTheme();
   const { isAdmin } = useAdmin();
   const location = useLocation();
+  const navigate = useNavigate();
 
   return (
     <div className="app-layout">
@@ -106,9 +123,16 @@ const Layout = () => {
           <Link to="/insights">인사이트</Link>
           <Link to="/create">만들기</Link>
           <SignedIn>
-            <Link to="/profile">프로필</Link>
             {isAdmin && <Link to="/admin" className="admin-link">관리자</Link>}
-            <UserButton />
+            <UserButton>
+              <UserButton.MenuItems>
+                <UserButton.Action
+                  label="내 프로필"
+                  labelIcon={<IconUser />}
+                  onClick={() => navigate('/profile')}
+                />
+              </UserButton.MenuItems>
+            </UserButton>
           </SignedIn>
           <SignedOut>
             <SignInButton mode="modal">
@@ -129,7 +153,6 @@ const Layout = () => {
           <SignedIn>
             {isAdmin && <Link to="/admin" className="admin-link mobile-admin">관리</Link>}
             <Link to="/insights" className="mobile-insights-link"><IconChart /></Link>
-            <UserButton />
           </SignedIn>
           <SignedOut>
             <SignInButton mode="modal">
@@ -165,6 +188,14 @@ const Layout = () => {
             </Link>
           );
         })}
+        {/* Profile tab with user avatar */}
+        <Link
+          to="/profile"
+          className={`mobile-nav-item ${location.pathname === '/profile' ? 'active' : ''}`}
+        >
+          <span className="mobile-nav-icon"><ProfileNavIcon /></span>
+          <span className="mobile-nav-label">프로필</span>
+        </Link>
       </nav>
     </div>
   );
