@@ -1,24 +1,19 @@
 import { useState } from 'react';
-import { usePolls, usePopularTags } from '../hooks/usePolls';
+import { usePolls } from '../hooks/usePolls';
 import PollCard from './PollCard';
 import { FeedSkeleton } from './Skeleton';
 import { hasVoted } from '../lib/voteStorage';
 
 const SORT_OPTIONS = [
   { id: 'latest', label: '최신순' },
-  { id: 'trending', label: '급상승' },
   { id: 'popular', label: '인기순' },
 ];
 
 const PollFeed = () => {
-  const [selectedTag, setSelectedTag] = useState('');
   const [sortBy, setSortBy] = useState('latest');
   const [hideVoted, setHideVoted] = useState(() => {
     return localStorage.getItem('hideVotedPolls') === 'true';
   });
-
-  const { data: tagsData } = usePopularTags(10);
-  const popularTags = tagsData?.data?.tags || [];
 
   const {
     data,
@@ -28,7 +23,7 @@ const PollFeed = () => {
     isLoading,
     isError,
     refetch,
-  } = usePolls(selectedTag || undefined, sortBy);
+  } = usePolls(undefined, sortBy);
 
   const allPolls = data?.pages.flatMap((page) => page.polls) ?? [];
   const polls = hideVoted ? allPolls.filter((poll) => !hasVoted(poll.id)) : allPolls;
@@ -44,23 +39,6 @@ const PollFeed = () => {
   return (
     <div className="poll-feed">
       <div className="feed-controls">
-        <div className="category-tabs">
-          <button
-            className={`category-tab ${selectedTag === '' ? 'active' : ''}`}
-            onClick={() => setSelectedTag('')}
-          >
-            전체
-          </button>
-          {popularTags.map((tag) => (
-            <button
-              key={tag.id}
-              className={`category-tab ${selectedTag === tag.name ? 'active' : ''}`}
-              onClick={() => setSelectedTag(tag.name)}
-            >
-              #{tag.name}
-            </button>
-          ))}
-        </div>
         <div className="feed-actions">
           <button
             className={`hide-voted-btn ${hideVoted ? 'active' : ''}`}
