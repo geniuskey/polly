@@ -1655,6 +1655,31 @@
 }
 
 /* ============================================
+   Activity Panel (My Polls + Vote History)
+   ============================================ */
+.activity-panel {
+  padding: 1rem 0;
+  animation: fadeInUp 0.4s ease-out;
+}
+
+.activity-section {
+  margin-bottom: 2rem;
+}
+
+.activity-section:last-child {
+  margin-bottom: 0;
+}
+
+.activity-section h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* ============================================
    XP Panel
    ============================================ */
 .xp-panel {

@@ -6,7 +6,7 @@ import { apiClient, type SimilarityStats, type XpStats, type PersonalityAnalysis
 import StatisticsPanel from './StatisticsPanel';
 import type { UpdateProfileRequest, Poll } from '../types';
 
-type TabType = 'personality' | 'xp' | 'statistics' | 'settings' | 'myPolls' | 'myVotes' | 'similarity';
+type TabType = 'personality' | 'xp' | 'statistics' | 'settings' | 'activity' | 'similarity';
 
 const ProfileSettings = () => {
   const { data: profileData, isLoading } = useProfile();
@@ -222,6 +222,21 @@ const MyVotesList = () => {
           {isFetchingNextPage ? '불러오는 중...' : '더 보기'}
         </button>
       )}
+    </div>
+  );
+};
+
+const ActivityPanel = () => {
+  return (
+    <div className="activity-panel">
+      <section className="activity-section">
+        <h4>내 설문</h4>
+        <MyPollsList />
+      </section>
+      <section className="activity-section">
+        <h4>투표 기록</h4>
+        <MyVotesList />
+      </section>
     </div>
   );
 };
@@ -533,16 +548,10 @@ const Profile = () => {
           비슷한 사람
         </button>
         <button
-          className={`profile-tab ${activeTab === 'myPolls' ? 'active' : ''}`}
-          onClick={() => setActiveTab('myPolls')}
+          className={`profile-tab ${activeTab === 'activity' ? 'active' : ''}`}
+          onClick={() => setActiveTab('activity')}
         >
-          내 설문
-        </button>
-        <button
-          className={`profile-tab ${activeTab === 'myVotes' ? 'active' : ''}`}
-          onClick={() => setActiveTab('myVotes')}
-        >
-          투표 기록
+          활동
         </button>
         <button
           className={`profile-tab ${activeTab === 'settings' ? 'active' : ''}`}
@@ -556,9 +565,8 @@ const Profile = () => {
       {activeTab === 'statistics' && <StatisticsPanel />}
       {activeTab === 'xp' && <XpPanel />}
       {activeTab === 'similarity' && <SimilarityPanel />}
+      {activeTab === 'activity' && <ActivityPanel />}
       {activeTab === 'settings' && <ProfileSettings />}
-      {activeTab === 'myPolls' && <MyPollsList />}
-      {activeTab === 'myVotes' && <MyVotesList />}
     </div>
   );
 };

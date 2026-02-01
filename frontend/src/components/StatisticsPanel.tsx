@@ -3,78 +3,10 @@ import { Link } from 'react-router-dom';
 import {
   apiClient,
   type UserStatistics,
-  type VotingPatterns,
   type CategoryPreference,
   type EarnedAchievement,
   type AchievementProgress,
 } from '../lib/api';
-
-const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const DAY_LABELS_KO: Record<string, string> = {
-  Sun: '일', Mon: '월', Tue: '화', Wed: '수', Thu: '목', Fri: '금', Sat: '토',
-};
-
-// Voting Heatmap Component
-const VotingHeatmap = ({ patterns }: { patterns: VotingPatterns }) => {
-  const maxCount = Math.max(
-    1,
-    ...Object.values(patterns.heatmap).flatMap(h => Object.values(h))
-  );
-
-  const getIntensity = (count: number): number => {
-    if (count === 0) return 0;
-    return Math.ceil((count / maxCount) * 4);
-  };
-
-  // Get hours to display (0-23 in 3-hour blocks)
-  const hours = [0, 3, 6, 9, 12, 15, 18, 21];
-
-  return (
-    <div className="voting-heatmap">
-      <h4>투표 시간 패턴</h4>
-      <div className="heatmap-grid">
-        <div className="heatmap-header">
-          <div className="heatmap-corner"></div>
-          {hours.map(h => (
-            <div key={h} className="heatmap-hour-label">{h}시</div>
-          ))}
-        </div>
-        {DAY_LABELS.map(day => (
-          <div key={day} className="heatmap-row">
-            <div className="heatmap-day-label">{DAY_LABELS_KO[day]}</div>
-            {hours.map(hour => {
-              // Sum the 3-hour block
-              let count = 0;
-              for (let h = hour; h < hour + 3 && h < 24; h++) {
-                const hourStr = h.toString().padStart(2, '0');
-                count += patterns.heatmap[day]?.[hourStr] || 0;
-              }
-              const intensity = getIntensity(count);
-              return (
-                <div
-                  key={`${day}-${hour}`}
-                  className={`heatmap-cell intensity-${intensity}`}
-                  title={`${DAY_LABELS_KO[day]} ${hour}~${hour + 3}시: ${count}개`}
-                />
-              );
-            })}
-          </div>
-        ))}
-      </div>
-      <div className="heatmap-legend">
-        <span>적음</span>
-        <div className="legend-cells">
-          <div className="heatmap-cell intensity-0" />
-          <div className="heatmap-cell intensity-1" />
-          <div className="heatmap-cell intensity-2" />
-          <div className="heatmap-cell intensity-3" />
-          <div className="heatmap-cell intensity-4" />
-        </div>
-        <span>많음</span>
-      </div>
-    </div>
-  );
-};
 
 // Category Preferences Chart
 const CategoryChart = ({ preferences }: { preferences: CategoryPreference[] }) => {
@@ -204,11 +136,6 @@ const StatisticsPanel = () => {
           <span className="banner-icon">🎉</span>
           <span>새로운 업적을 획득했습니다!</span>
         </div>
-      )}
-
-      {/* Voting patterns heatmap */}
-      {stats.votingPatterns && (
-        <VotingHeatmap patterns={stats.votingPatterns} />
       )}
 
       {/* Category preferences */}
