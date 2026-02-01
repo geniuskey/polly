@@ -13,10 +13,10 @@ database_id = "56ac87f7-be03-4319-aed2-50cae291e1d7"
 binding = "vibepulse_cache"
 id = "6395f5c06a634815905802f7608aa4d1"
 
-# R2 Bucket for images
-[[r2_buckets]]
-binding = "vibepulse_images"
-bucket_name = "vibepulse-images"
+# R2 Bucket for images (disabled until R2 is enabled in Cloudflare Dashboard)
+# [[r2_buckets]]
+# binding = "vibepulse_images"
+# bucket_name = "vibepulse-images"
 
 # ============================================
 # Development
@@ -44,9 +44,9 @@ database_id = "56ac87f7-be03-4319-aed2-50cae291e1d7"
 binding = "vibepulse_cache"
 id = "6395f5c06a634815905802f7608aa4d1"
 
-[[env.production.r2_buckets]]
-binding = "vibepulse_images"
-bucket_name = "vibepulse-images"
+# [[env.production.r2_buckets]]
+# binding = "vibepulse_images"
+# bucket_name = "vibepulse-images"
 
 # Local dev settings
 [dev]

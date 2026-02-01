@@ -11,6 +11,11 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 // POST /api/images/upload - Upload image to R2
 images.post('/upload', requireAuth, async (c) => {
   try {
+    // Check if R2 is configured
+    if (!c.env.vibepulse_images) {
+      return error(c, 'R2_NOT_CONFIGURED', '이미지 업로드 기능이 비활성화되어 있습니다', 503);
+    }
+
     const contentType = c.req.header('Content-Type') || '';
 
     // Handle multipart form data
@@ -64,6 +69,11 @@ images.post('/upload', requireAuth, async (c) => {
 
 // GET /api/images/:key+ - Serve image from R2
 images.get('/:key{.+}', async (c) => {
+  // Check if R2 is configured
+  if (!c.env.vibepulse_images) {
+    return c.notFound();
+  }
+
   const key = c.req.param('key');
 
   try {
@@ -87,6 +97,11 @@ images.get('/:key{.+}', async (c) => {
 
 // DELETE /api/images/:key+ - Delete image from R2 (admin only)
 images.delete('/:key{.+}', requireAuth, async (c) => {
+  // Check if R2 is configured
+  if (!c.env.vibepulse_images) {
+    return error(c, 'R2_NOT_CONFIGURED', '이미지 기능이 비활성화되어 있습니다', 503);
+  }
+
   const key = c.req.param('key');
   const isAdmin = c.get('isAdmin');
 

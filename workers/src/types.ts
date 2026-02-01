@@ -3,7 +3,7 @@ import type { Context } from 'hono';
 export interface Env {
   survey_db: D1Database;
   vibepulse_cache: KVNamespace;
-  vibepulse_images: R2Bucket;
+  vibepulse_images?: R2Bucket; // Optional - enable R2 in Cloudflare Dashboard to use
   CLERK_SECRET_KEY: string;
   ENVIRONMENT: string;
   ALLOWED_ORIGINS: string;
