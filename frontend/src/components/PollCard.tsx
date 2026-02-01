@@ -29,7 +29,7 @@ const scrollToNextCard = (currentCard: HTMLElement) => {
     // Wait for animations to complete (celebrate: 0.5s, glow: 1s) + buffer
     setTimeout(() => {
       nextCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 1400);
+    }, 1600);
   }
 };
 
