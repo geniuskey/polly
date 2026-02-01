@@ -634,75 +634,79 @@ users.get('/me/statistics', async (c) => {
 
   const stats = statsResult || { vote_count: 0, poll_count: 0, comment_count: 0, tag_count: 0, level: 1 };
 
-  // Get all achievements
-  const allAchievements = await c.env.survey_db.prepare(
-    'SELECT * FROM achievements ORDER BY category, threshold'
-  ).all<{ id: string; name: string; description: string; emoji: string; category: string; threshold: number }>();
+  // 3. Achievements - wrapped in try-catch in case tables don't exist
+  let earned: { id: string; name: string; emoji: string; earnedAt: string }[] = [];
+  let progress: { id: string; name: string; emoji: string; current: number; target: number; percentage: number }[] = [];
+  let newlyEarned: string[] = [];
 
-  // Get user's earned achievements
-  const earnedResult = await c.env.survey_db.prepare(
-    'SELECT achievement_id, earned_at FROM user_achievements WHERE user_id = ?'
-  ).bind(userId).all<{ achievement_id: string; earned_at: string }>();
+  try {
+    // Get all achievements
+    const allAchievements = await c.env.survey_db.prepare(
+      'SELECT * FROM achievements ORDER BY category, threshold'
+    ).all<{ id: string; name: string; description: string; emoji: string; category: string; threshold: number }>();
 
-  const earnedMap = new Map((earnedResult.results || []).map(r => [r.achievement_id, r.earned_at]));
+    // Get user's earned achievements
+    const earnedResult = await c.env.survey_db.prepare(
+      'SELECT achievement_id, earned_at FROM user_achievements WHERE user_id = ?'
+    ).bind(userId).all<{ achievement_id: string; earned_at: string }>();
 
-  // Calculate progress for each achievement
-  const getCurrent = (category: string, threshold: number): number => {
-    switch (category) {
-      case 'voting': return stats.vote_count;
-      case 'creation': return stats.poll_count;
-      case 'social': return stats.comment_count;
-      case 'exploration': return stats.tag_count;
-      case 'level': return stats.level;
-      default: return 0;
-    }
-  };
+    const earnedMap = new Map((earnedResult.results || []).map(r => [r.achievement_id, r.earned_at]));
 
-  const earned: { id: string; name: string; emoji: string; earnedAt: string }[] = [];
-  const progress: { id: string; name: string; emoji: string; current: number; target: number; percentage: number }[] = [];
+    // Calculate progress for each achievement
+    const getCurrent = (category: string): number => {
+      switch (category) {
+        case 'voting': return stats.vote_count;
+        case 'creation': return stats.poll_count;
+        case 'social': return stats.comment_count;
+        case 'exploration': return stats.tag_count;
+        case 'level': return stats.level;
+        default: return 0;
+      }
+    };
 
-  // Check and potentially award new achievements
-  const newlyEarned: string[] = [];
+    for (const ach of allAchievements.results || []) {
+      const current = getCurrent(ach.category);
+      const isEarned = earnedMap.has(ach.id);
 
-  for (const ach of allAchievements.results || []) {
-    const current = getCurrent(ach.category, ach.threshold);
-    const isEarned = earnedMap.has(ach.id);
-
-    if (isEarned) {
-      earned.push({
-        id: ach.id,
-        name: ach.name,
-        emoji: ach.emoji,
-        earnedAt: earnedMap.get(ach.id)!,
-      });
-    } else {
-      // Check if should be awarded now
-      if (current >= ach.threshold) {
-        newlyEarned.push(ach.id);
+      if (isEarned) {
         earned.push({
           id: ach.id,
           name: ach.name,
           emoji: ach.emoji,
-          earnedAt: new Date().toISOString(),
+          earnedAt: earnedMap.get(ach.id)!,
         });
       } else {
-        progress.push({
-          id: ach.id,
-          name: ach.name,
-          emoji: ach.emoji,
-          current,
-          target: ach.threshold,
-          percentage: Math.min(100, Math.round((current / ach.threshold) * 100)),
-        });
+        // Check if should be awarded now
+        if (current >= ach.threshold) {
+          newlyEarned.push(ach.id);
+          earned.push({
+            id: ach.id,
+            name: ach.name,
+            emoji: ach.emoji,
+            earnedAt: new Date().toISOString(),
+          });
+        } else {
+          progress.push({
+            id: ach.id,
+            name: ach.name,
+            emoji: ach.emoji,
+            current,
+            target: ach.threshold,
+            percentage: Math.min(100, Math.round((current / ach.threshold) * 100)),
+          });
+        }
       }
     }
-  }
 
-  // Award newly earned achievements
-  for (const achId of newlyEarned) {
-    await c.env.survey_db.prepare(
-      'INSERT OR IGNORE INTO user_achievements (user_id, achievement_id) VALUES (?, ?)'
-    ).bind(userId, achId).run();
+    // Award newly earned achievements
+    for (const achId of newlyEarned) {
+      await c.env.survey_db.prepare(
+        'INSERT OR IGNORE INTO user_achievements (user_id, achievement_id) VALUES (?, ?)'
+      ).bind(userId, achId).run();
+    }
+  } catch (e) {
+    // Achievements tables might not exist yet - ignore
+    console.error('Achievements error (tables may not exist):', e);
   }
 
   return success(c, {
