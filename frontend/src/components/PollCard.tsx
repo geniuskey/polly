@@ -1,12 +1,23 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import type { Poll } from '../types';
+import type { Poll, PollOption } from '../types';
 import { useVote, usePollDetail } from '../hooks/usePolls';
 import { generateFingerprint } from '../lib/fingerprint';
 import { saveVote, getVote } from '../lib/voteStorage';
 import { apiClient, type PollSimilarity } from '../lib/api';
 import ExpirationTimer from './ExpirationTimer';
 import ShareCard from './ShareCard';
+
+// Helper to normalize option (handle both string and object formats)
+const getOptionText = (option: string | PollOption): string => {
+  if (typeof option === 'string') return option;
+  return option.text || '';
+};
+
+const getOptionImage = (option: string | PollOption): string | null => {
+  if (typeof option === 'string') return null;
+  return option.imageUrl || null;
+};
 
 interface PollCardProps {
   poll: Poll;
@@ -190,12 +201,14 @@ const PollCard = ({ poll }: PollCardProps) => {
         <h3 className="poll-question">{poll.question}</h3>
       </Link>
 
-      <div className={`poll-options ${poll.options.some(o => o.imageUrl) ? 'with-images' : ''}`}>
+      <div className={`poll-options ${poll.options.some(o => getOptionImage(o)) ? 'with-images' : ''}`}>
         {poll.options.map((option, index) => {
           const previewPct = hasPreview ? previewPercentages[index] || 0 : 0;
           const resultPct = results?.[index]?.percentage || 0;
           const displayPct = voted ? resultPct : previewPct;
-          const hasImage = !!option.imageUrl;
+          const optionText = getOptionText(option);
+          const optionImage = getOptionImage(option);
+          const hasImage = !!optionImage;
 
           return (
             <button
@@ -215,7 +228,7 @@ const PollCard = ({ poll }: PollCardProps) => {
               {/* Option image */}
               {hasImage && (
                 <div className="option-image">
-                  <img src={option.imageUrl!} alt={option.text} loading="lazy" />
+                  <img src={optionImage} alt={optionText} loading="lazy" />
                 </div>
               )}
 
@@ -223,7 +236,7 @@ const PollCard = ({ poll }: PollCardProps) => {
                 {selectedOption === index && voted && (
                   <span className="my-vote-badge">내 선택</span>
                 )}
-                {option.text}
+                {optionText}
               </span>
 
               {/* Show percentages */}
@@ -282,7 +295,7 @@ const PollCard = ({ poll }: PollCardProps) => {
             <ShareCard
               pollId={poll.id}
               question={poll.question}
-              selectedOption={poll.options[selectedOption].text}
+              selectedOption={getOptionText(poll.options[selectedOption])}
               percentage={myPercentage}
               totalVotes={poll.responseCount + 1}
               onClose={() => setShowShareCard(false)}

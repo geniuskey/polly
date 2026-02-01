@@ -9,6 +9,18 @@ import ShareButtons from '../components/ShareButtons';
 import Comments from '../components/Comments';
 import ExpirationTimer from '../components/ExpirationTimer';
 import { DetailSkeleton } from '../components/Skeleton';
+import type { PollOption } from '../types';
+
+// Helper to normalize option (handle both string and object formats)
+const getOptionText = (option: string | PollOption): string => {
+  if (typeof option === 'string') return option;
+  return option.text || '';
+};
+
+const getOptionImage = (option: string | PollOption): string | null => {
+  if (typeof option === 'string') return null;
+  return option.imageUrl || null;
+};
 
 
 const PollDetailPage = () => {
@@ -110,9 +122,11 @@ const PollDetailPage = () => {
 
         <h2 className="poll-question">{poll.question}</h2>
 
-        <div className={`poll-options ${poll.options.some(o => o.imageUrl) ? 'with-images' : ''}`}>
+        <div className={`poll-options ${poll.options.some(o => getOptionImage(o)) ? 'with-images' : ''}`}>
           {poll.options.map((option, index) => {
-            const hasImage = !!option.imageUrl;
+            const optionText = getOptionText(option);
+            const optionImage = getOptionImage(option);
+            const hasImage = !!optionImage;
             return (
               <button
                 key={index}
@@ -123,7 +137,7 @@ const PollDetailPage = () => {
                 {/* Option image */}
                 {hasImage && (
                   <div className="option-image">
-                    <img src={option.imageUrl!} alt={option.text} loading="lazy" />
+                    <img src={optionImage} alt={optionText} loading="lazy" />
                   </div>
                 )}
 
@@ -131,7 +145,7 @@ const PollDetailPage = () => {
                   {effectiveSelected === index && hasVoted && (
                     <span className="my-vote-badge">내 선택</span>
                   )}
-                  {option.text}
+                  {optionText}
                 </span>
                 {hasVoted && poll.results.options[index] && (
                   <div className="option-result">

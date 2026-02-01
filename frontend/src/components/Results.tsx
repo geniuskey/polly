@@ -1,9 +1,15 @@
 import { useState } from 'react';
 import type { VoteResult, PollOption } from '../types';
 
+// Helper to get option text (handle both string and object formats)
+const getOptionText = (option: string | PollOption): string => {
+  if (typeof option === 'string') return option;
+  return option.text || '';
+};
+
 interface ResultsProps {
   results: VoteResult;
-  options: PollOption[];
+  options: (string | PollOption)[];
 }
 
 const GENDER_LABELS: Record<string, string> = {
@@ -81,7 +87,7 @@ const Results = ({ results, options }: ResultsProps) => {
         <div className="results-bars">
           {results.options.map((opt, i) => (
             <div key={i} className="result-row">
-              <div className="result-label">{options[i]?.text || `옵션 ${i + 1}`}</div>
+              <div className="result-label">{options[i] ? getOptionText(options[i]) : `옵션 ${i + 1}`}</div>
               <div className="result-bar-wrapper">
                 <div
                   className="result-bar-fill"
@@ -119,7 +125,7 @@ const Results = ({ results, options }: ResultsProps) => {
           <div className="comparison-chart">
             {options.map((option, optIndex) => (
               <div key={optIndex} className="comparison-row">
-                <div className="comparison-label">{option.text}</div>
+                <div className="comparison-label">{getOptionText(option)}</div>
                 <div className="comparison-bars">
                   {genders.map((gender) => {
                     const pct = results.byGender![gender].options[optIndex];
@@ -165,7 +171,7 @@ const Results = ({ results, options }: ResultsProps) => {
           <div className="comparison-chart">
             {options.map((option, optIndex) => (
               <div key={optIndex} className="comparison-row">
-                <div className="comparison-label">{option.text}</div>
+                <div className="comparison-label">{getOptionText(option)}</div>
                 <div className="comparison-bars">
                   {ageGroups.map((age) => {
                     const pct = results.byAgeGroup![age].options[optIndex];
