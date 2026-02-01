@@ -26,9 +26,10 @@ interface PollCardProps {
 const scrollToNextCard = (currentCard: HTMLElement) => {
   const nextCard = currentCard.nextElementSibling as HTMLElement | null;
   if (nextCard) {
+    // Wait for animations to complete (celebrate: 0.5s, glow: 1s) + buffer
     setTimeout(() => {
       nextCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 400);
+    }, 1200);
   }
 };
 
