@@ -18,9 +18,6 @@ const PollFeed = () => {
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     return (localStorage.getItem('pollViewMode') as ViewMode) || 'swipe';
   });
-  const [hideVoted, setHideVoted] = useState(() => {
-    return localStorage.getItem('hideVotedPolls') === 'true';
-  });
 
   const {
     data,
@@ -33,13 +30,8 @@ const PollFeed = () => {
   } = usePolls(undefined, sortBy);
 
   const allPolls = data?.pages.flatMap((page) => page.polls) ?? [];
-  const polls = hideVoted ? allPolls.filter((poll) => !hasVoted(poll.id)) : allPolls;
-
-  const toggleHideVoted = () => {
-    const newValue = !hideVoted;
-    setHideVoted(newValue);
-    localStorage.setItem('hideVotedPolls', String(newValue));
-  };
+  // Always filter out voted polls
+  const polls = allPolls.filter((poll) => !hasVoted(poll.id));
 
   const toggleViewMode = () => {
     const newMode = viewMode === 'list' ? 'swipe' : 'list';
@@ -77,14 +69,11 @@ const PollFeed = () => {
                 </svg>
               )}
             </button>
-            <button
-              className={`hide-voted-btn ${hideVoted ? 'active' : ''}`}
-              onClick={toggleHideVoted}
-              title={hideVoted ? '참여한 설문 표시' : '참여한 설문 숨기기'}
-            >
-              {hideVoted ? '참여완료 숨김' : '참여완료 표시'}
-              {votedCount > 0 && <span className="voted-count">{votedCount}</span>}
-            </button>
+            {votedCount > 0 && (
+              <span className="voted-count-label">
+                {votedCount}개 참여완료
+              </span>
+            )}
           </div>
           <div className="sort-options">
             {SORT_OPTIONS.map((opt) => (
@@ -111,7 +100,7 @@ const PollFeed = () => {
       )}
       {!isLoading && !isError && polls.length === 0 && (
         <div className="empty">
-          {hideVoted && allPolls.length > 0
+          {allPolls.length > 0
             ? '모든 설문에 참여했습니다! 🎉'
             : '아직 등록된 설문이 없습니다.'}
         </div>

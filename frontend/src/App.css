@@ -2311,6 +2311,14 @@
   font-weight: 600;
 }
 
+.voted-count-label {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  padding: 0.35rem 0.6rem;
+  background: var(--color-bg-secondary);
+  border-radius: 8px;
+}
+
 .sort-options {
   display: flex;
   gap: 0.5rem;
