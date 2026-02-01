@@ -1,9 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { usePolls } from '../hooks/usePolls';
 import PollCard from './PollCard';
 import SwipeableCardStack from './SwipeableCardStack';
 import TrendingSection from './TrendingSection';
-import LandingHero from './LandingHero';
 import { FeedSkeleton } from './Skeleton';
 import { hasVoted } from '../lib/voteStorage';
 
@@ -22,11 +21,6 @@ const PollFeed = () => {
   const [hideVoted, setHideVoted] = useState(() => {
     return localStorage.getItem('hideVotedPolls') === 'true';
   });
-  const pollsSectionRef = useRef<HTMLDivElement>(null);
-
-  const scrollToPolls = () => {
-    pollsSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
 
   const {
     data,
@@ -57,10 +51,7 @@ const PollFeed = () => {
 
   return (
     <div className="poll-feed">
-      <LandingHero onScrollToPolls={scrollToPolls} />
-
-      <div ref={pollsSectionRef}>
-        <TrendingSection />
+      <TrendingSection />
 
       <div className="feed-controls">
         <div className="feed-actions">
@@ -162,7 +153,6 @@ const PollFeed = () => {
           더 많은 설문 불러오기
         </button>
       )}
-      </div>
     </div>
   );
 };

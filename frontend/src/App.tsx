@@ -9,6 +9,7 @@ import AdminPage from './pages/AdminPage';
 import RankingPage from './pages/RankingPage';
 import ExplorePage from './pages/ExplorePage';
 import InsightsPage from './pages/InsightsPage';
+import LandingPage from './pages/LandingPage';
 import AboutPage from './pages/AboutPage';
 import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
@@ -28,7 +29,8 @@ const App = () => {
     <BrowserRouter>
       <Routes>
         <Route element={<Layout />}>
-          <Route path="/" element={<PollFeed />} />
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/feed" element={<PollFeed />} />
           <Route path="/poll/:id" element={<PollDetailPage />} />
           <Route path="/create" element={<CreatePoll />} />
           <Route path="/profile" element={<Profile />} />

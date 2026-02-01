@@ -81,7 +81,7 @@ const ThemeIcon = ({ isDark }: { isDark: boolean }) => {
 };
 
 const NAV_ITEMS = [
-  { path: '/', label: '홈', icon: IconHome },
+  { path: '/feed', label: '홈', icon: IconHome },
   { path: '/ranking', label: '랭킹', icon: IconTrophy },
   { path: '/explore', label: '탐색', icon: IconSearch },
   { path: '/create', label: '만들기', icon: IconPencil },
@@ -117,7 +117,7 @@ const Layout = () => {
           VibePulse
         </Link>
         <nav className="nav desktop-nav">
-          <Link to="/">홈</Link>
+          <Link to="/feed">홈</Link>
           <Link to="/ranking">랭킹</Link>
           <Link to="/explore">탐색</Link>
           <Link to="/insights">인사이트</Link>
