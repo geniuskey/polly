@@ -53,29 +53,6 @@ const InsightsPage = () => {
   return (
     <div className="insights-page">
       <h1>인사이트</h1>
-      <p className="insights-subtitle">VibePulse 투표 트렌드를 한눈에</p>
-
-      {/* Period Selector */}
-      <div className="trend-period-selector">
-        <button
-          className={`period-btn ${trendPeriod === 'day' ? 'active' : ''}`}
-          onClick={() => setTrendPeriod('day')}
-        >
-          오늘
-        </button>
-        <button
-          className={`period-btn ${trendPeriod === 'week' ? 'active' : ''}`}
-          onClick={() => setTrendPeriod('week')}
-        >
-          이번 주
-        </button>
-        <button
-          className={`period-btn ${trendPeriod === 'month' ? 'active' : ''}`}
-          onClick={() => setTrendPeriod('month')}
-        >
-          이번 달
-        </button>
-      </div>
 
       {/* Realtime Trending */}
       {!realtimeLoading && realtimeData?.data && (realtimeData.data as RealtimeTrendData).trending.length > 0 && (
@@ -95,31 +72,51 @@ const InsightsPage = () => {
         </section>
       )}
 
-      {/* Total Stats */}
-      <section className="insights-section">
-        <h2>전체 통계</h2>
-        <div className="insights-totals">
-          <div className="insight-stat-card">
-            <span className="stat-emoji">📊</span>
+      {/* Total Stats - Compact inline */}
+      <section className="insights-section stats-compact">
+        <div className="insights-totals-compact">
+          <div className="stat-inline">
             <span className="stat-value">{insights.totals.polls.toLocaleString()}</span>
-            <span className="stat-label">총 설문</span>
+            <span className="stat-label">설문</span>
           </div>
-          <div className="insight-stat-card">
-            <span className="stat-emoji">✋</span>
+          <span className="stat-divider">·</span>
+          <div className="stat-inline">
             <span className="stat-value">{insights.totals.responses.toLocaleString()}</span>
-            <span className="stat-label">총 투표</span>
+            <span className="stat-label">투표</span>
           </div>
-          <div className="insight-stat-card">
-            <span className="stat-emoji">👥</span>
+          <span className="stat-divider">·</span>
+          <div className="stat-inline">
             <span className="stat-value">{insights.totals.participants.toLocaleString()}</span>
             <span className="stat-label">참여자</span>
           </div>
         </div>
       </section>
 
-      {/* Time Series Chart */}
+      {/* Time Series Chart with Period Selector */}
       <section className="insights-section">
-        <h2>투표 트렌드</h2>
+        <div className="section-header-with-selector">
+          <h2>투표 트렌드</h2>
+          <div className="trend-period-selector">
+            <button
+              className={`period-btn ${trendPeriod === 'day' ? 'active' : ''}`}
+              onClick={() => setTrendPeriod('day')}
+            >
+              오늘
+            </button>
+            <button
+              className={`period-btn ${trendPeriod === 'week' ? 'active' : ''}`}
+              onClick={() => setTrendPeriod('week')}
+            >
+              이번 주
+            </button>
+            <button
+              className={`period-btn ${trendPeriod === 'month' ? 'active' : ''}`}
+              onClick={() => setTrendPeriod('month')}
+            >
+              이번 달
+            </button>
+          </div>
+        </div>
         {timeSeriesLoading ? (
           <div className="chart-loading">로딩 중...</div>
         ) : timeSeriesData?.data ? (

@@ -3783,13 +3783,68 @@
 }
 
 .insights-section {
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.insights-section.stats-compact {
+  margin-bottom: 1rem;
 }
 
 .insights-section h2 {
-  font-size: 1.1rem;
-  margin-bottom: 1rem;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
   color: var(--color-text);
+}
+
+/* Section header with inline selector */
+.section-header-with-selector {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.section-header-with-selector h2 {
+  margin-bottom: 0;
+}
+
+.section-header-with-selector .trend-period-selector {
+  margin: 0;
+}
+
+/* Compact inline stats */
+.insights-totals-compact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.stat-inline {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+
+.stat-inline .stat-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.stat-inline .stat-label {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.stat-divider {
+  color: var(--color-text-dimmed);
+  font-size: 0.9rem;
 }
 
 .section-description {
@@ -4016,24 +4071,23 @@
 /* Period Selector */
 .trend-period-selector {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  gap: 0.25rem;
   background: var(--color-bg-secondary);
-  padding: 0.25rem;
-  border-radius: 10px;
+  padding: 0.2rem;
+  border-radius: 6px;
 }
 
 .trend-period-selector .period-btn {
-  flex: 1;
-  padding: 0.6rem 1rem;
+  padding: 0.35rem 0.6rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 4px;
   background: transparent;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--color-text-muted);
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .trend-period-selector .period-btn:hover {
@@ -4043,7 +4097,7 @@
 .trend-period-selector .period-btn.active {
   background: var(--color-bg-card);
   color: var(--color-primary);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 /* Realtime Trending Section */
@@ -4473,14 +4527,13 @@
   }
 
   /* Trend Analysis (Phase 4) */
-  .trend-period-selector {
-    gap: 0.25rem;
+  .trend-period-selector .period-btn {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.7rem;
   }
 
-  .trend-period-selector .period-btn {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.8rem;
-    min-height: 44px;
+  .section-header-with-selector {
+    flex-wrap: wrap;
   }
 
   .demo-type-selector {
