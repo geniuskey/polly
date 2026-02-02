@@ -77,27 +77,34 @@ const InsightsPage = () => {
         <h2>전체 통계</h2>
         <div className="insights-totals">
           <div className="insight-stat-card">
-            <span className="stat-emoji">📊</span>
             <span className="stat-value">{insights.totals.polls.toLocaleString()}</span>
             <span className="stat-label">총 설문</span>
           </div>
           <div className="insight-stat-card">
-            <span className="stat-emoji">✋</span>
             <span className="stat-value">{insights.totals.responses.toLocaleString()}</span>
             <span className="stat-label">총 투표</span>
           </div>
           <div className="insight-stat-card">
-            <span className="stat-emoji">👥</span>
             <span className="stat-value">{insights.totals.participants.toLocaleString()}</span>
             <span className="stat-label">참여자</span>
           </div>
         </div>
       </section>
 
-      {/* Time Series Chart with Period Selector */}
+      {/* Time Series Chart */}
+      <section className="insights-section">
+        <h2>투표 트렌드</h2>
+        {timeSeriesLoading ? (
+          <div className="chart-loading">로딩 중...</div>
+        ) : timeSeriesData?.data ? (
+          <TrendChart data={timeSeriesData.data as TimeSeriesData} />
+        ) : null}
+      </section>
+
+      {/* Demographics with Period Selector */}
       <section className="insights-section">
         <div className="section-header-with-selector">
-          <h2>투표 트렌드</h2>
+          <h2>참여자 분포</h2>
           <div className="trend-period-selector">
             <button
               className={`period-btn ${trendPeriod === 'day' ? 'active' : ''}`}
@@ -119,16 +126,6 @@ const InsightsPage = () => {
             </button>
           </div>
         </div>
-        {timeSeriesLoading ? (
-          <div className="chart-loading">로딩 중...</div>
-        ) : timeSeriesData?.data ? (
-          <TrendChart data={timeSeriesData.data as TimeSeriesData} />
-        ) : null}
-      </section>
-
-      {/* Demographics */}
-      <section className="insights-section">
-        <h2>참여자 분포</h2>
         <div className="demo-type-selector">
           <button
             className={`demo-type-btn ${demoType === 'gender' ? 'active' : ''}`}
