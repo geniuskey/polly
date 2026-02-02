@@ -72,20 +72,22 @@ const InsightsPage = () => {
         </section>
       )}
 
-      {/* Total Stats - Compact inline */}
-      <section className="insights-section stats-compact">
-        <div className="insights-totals-compact">
-          <div className="stat-inline">
+      {/* Total Stats */}
+      <section className="insights-section">
+        <h2>전체 통계</h2>
+        <div className="insights-totals">
+          <div className="insight-stat-card">
+            <span className="stat-emoji">📊</span>
             <span className="stat-value">{insights.totals.polls.toLocaleString()}</span>
-            <span className="stat-label">설문</span>
+            <span className="stat-label">총 설문</span>
           </div>
-          <span className="stat-divider">·</span>
-          <div className="stat-inline">
+          <div className="insight-stat-card">
+            <span className="stat-emoji">✋</span>
             <span className="stat-value">{insights.totals.responses.toLocaleString()}</span>
-            <span className="stat-label">투표</span>
+            <span className="stat-label">총 투표</span>
           </div>
-          <span className="stat-divider">·</span>
-          <div className="stat-inline">
+          <div className="insight-stat-card">
+            <span className="stat-emoji">👥</span>
             <span className="stat-value">{insights.totals.participants.toLocaleString()}</span>
             <span className="stat-label">참여자</span>
           </div>

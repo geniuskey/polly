@@ -3786,10 +3786,6 @@
   margin-bottom: 1.5rem;
 }
 
-.insights-section.stats-compact {
-  margin-bottom: 1rem;
-}
-
 .insights-section h2 {
   font-size: 1rem;
   margin-bottom: 0.75rem;
@@ -3813,39 +3809,6 @@
   margin: 0;
 }
 
-/* Compact inline stats */
-.insights-totals-compact {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-}
-
-.stat-inline {
-  display: flex;
-  align-items: baseline;
-  gap: 0.25rem;
-}
-
-.stat-inline .stat-value {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--color-primary);
-}
-
-.stat-inline .stat-label {
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
-}
-
-.stat-divider {
-  color: var(--color-text-dimmed);
-  font-size: 0.9rem;
-}
 
 .section-description {
   font-size: 0.85rem;
